@@ -35,14 +35,16 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
     const category = searchParams.get('category')
+    const province = searchParams.get('province')
     const city = searchParams.get('city')
+    const area = searchParams.get('area')
     const status = searchParams.get('status')
     const q = searchParams.get('q')
     const slug = searchParams.get('slug')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '12')
 
-    console.log('GET /api/business - Query params:', { id, slug, category, city, status, q, page, limit })
+    console.log('GET /api/business - Query params:', { id, slug, category, province, city, area, status, q, page, limit })
 
     const models = await getModels()
     
@@ -86,7 +88,9 @@ export async function GET(req: NextRequest) {
     // Build filter object for multiple businesses
     const filter: any = {}
     if (category) filter.category = category
+    if (province) filter.province = province
     if (city) filter.city = city
+    if (area) filter.area = area
     if (status) filter.status = status
     if (q && q.trim()) {
       const regex = new RegExp(q.trim(), 'i')
@@ -94,7 +98,9 @@ export async function GET(req: NextRequest) {
         { name: regex },
         { description: regex },
         { category: regex },
+        { province: regex },
         { city: regex },
+        { area: regex },
       ]
     }
 
@@ -146,6 +152,7 @@ export async function POST(req: Request) {
     const formData = {
       name: String(form.get("name") || "").trim(),
       category: String(form.get("category") || "").trim(),
+      province: String(form.get("province") || "").trim(),
       city: String(form.get("city") || "").trim(),
       address: String(form.get("address") || "").trim(),
       phone: String(form.get("phone") || "").trim(),

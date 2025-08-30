@@ -5,13 +5,14 @@ export const BusinessSchema = z.object({
   name: z.string().min(1, "Business name is required").max(100, "Name too long"),
   slug: z.string().min(1, "Slug is required").max(140, "Slug too long"),
   category: z.string().min(1, "Category is required"),
+  province: z.string().min(1, "Province is required"),
   city: z.string().min(1, "City is required"),
   address: z.string().min(1, "Address is required").max(500, "Address too long"),
   phone: z.string().min(1, "Phone number is required").max(20, "Phone number too long"),
   contactPerson: z.string().optional().transform(val => val === "" ? undefined : val),
   whatsapp: z.string().optional().transform(val => val === "" ? undefined : val),
   email: z.string().email("Invalid email format"),
-  description: z.string().min(10, "Description must be at least 10 characters").max(1000, "Description too long"),
+  description: z.string().min(10, "Description must be at least 10 characters").max(2000, "Description too long"),
   logoUrl: z.string().url().optional(),
   logoPublicId: z.string().optional(),
   status: z.enum(["pending", "approved", "rejected"]).default("pending"),
@@ -28,13 +29,14 @@ export type Business = z.infer<typeof BusinessSchema>
 export const CreateBusinessSchema = z.object({
   name: z.string().min(1, "Business name is required").max(100, "Name too long"),
   category: z.string().min(1, "Category is required"),
+  province: z.string().min(1, "Province is required"),
   city: z.string().min(1, "City is required"),
   address: z.string().min(1, "Address is required").max(500, "Address too long"),
   phone: z.string().min(1, "Phone number is required").max(20, "Phone number too long"),
   contactPerson: z.string().optional().transform(val => val === "" ? undefined : val),
   whatsapp: z.string().optional().transform(val => val === "" ? undefined : val),
   email: z.string().email("Invalid email format"),
-  description: z.string().min(10, "Description must be at least 10 characters").max(1000, "Description too long"),
+  description: z.string().min(10, "Description must be at least 10 characters").max(2000, "Description too long"),
 })
 
 export type CreateBusiness = z.infer<typeof CreateBusinessSchema>

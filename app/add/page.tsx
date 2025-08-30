@@ -9,17 +9,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, CheckCircle, ArrowLeft } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { categories, cities } from "@/lib/mock-data"
+import { categories } from "@/lib/mock-data"
 
 interface FormDataShape {
   name: string
   contactPerson?: string
   category: string
+  province: string
   city: string
   address: string
   phone: string
@@ -33,6 +36,7 @@ export default function AddBusinessPage() {
     name: "",
     contactPerson: "",
     category: "",
+    province: "",
     city: "",
     address: "",
     phone: "",
@@ -50,6 +54,78 @@ export default function AddBusinessPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoError, setLogoError] = useState<string>("")
   const [submitError, setSubmitError] = useState<string>("")
+  const [cityOpen, setCityOpen] = useState(false)
+  const [provinceOpen, setProvinceOpen] = useState(false)
+  
+  const [cities, setCities] = useState<Array<{ id: string; name: string }>>([])
+  const [provinces, setProvinces] = useState<Array<{ id: string; name: string }>>([])
+  const [citiesLoading, setCitiesLoading] = useState(false)
+  const [provincesLoading, setProvincesLoading] = useState(false)
+  const [citiesError, setCitiesError] = useState<string>("")
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>("")
+  const [selectedCityId, setSelectedCityId] = useState<string>("")
+
+  // Load provinces on mount
+  useEffect(() => {
+    const loadProvinces = async () => {
+      try {
+        setProvincesLoading(true)
+        const res = await fetch("/api/provinces")
+        const data = await res.json()
+        setProvinces(Array.isArray(data) ? data : data?.provinces ?? [])
+      } catch (e) {
+        console.error("Failed to load provinces", e)
+        setProvinces([])
+      } finally {
+        setProvincesLoading(false)
+      }
+    }
+    loadProvinces()
+  }, [])
+
+  // Reusable: Load all cities from server (Leopards full list endpoint)
+  const loadAllCities = async () => {
+    try {
+      setCitiesLoading(true)
+      const res = await fetch("/api/cities")
+      const data = await res.json()
+      if (data && data.ok === false) {
+        console.error("/api/cities error:", data)
+        setCitiesError(data.error || "Failed to load cities")
+        setCities([])
+      } else {
+        setCitiesError("")
+        setCities(Array.isArray(data) ? data : data?.cities ?? [])
+      }
+    } catch (e) {
+      console.error("Failed to load cities", e)
+      setCities([])
+      setCitiesError("Network or server error while loading cities")
+    } finally {
+      setCitiesLoading(false)
+    }
+  }
+
+  // Load cities on mount
+  useEffect(() => {
+    loadAllCities()
+  }, [])
+
+  const fetchCities = async (provinceId: string) => {
+    try {
+      setCitiesLoading(true)
+      const res = await fetch(`/api/cities?provinceId=${encodeURIComponent(provinceId)}`)
+      const data = await res.json()
+      setCities(Array.isArray(data) ? data : data?.cities ?? [])
+    } catch (e) {
+      console.error("Failed to load cities", e)
+      setCities([])
+    } finally {
+      setCitiesLoading(false)
+    }
+  }
+
+  // Area functionality removed
 
   const handleInputChange = (field: keyof FormDataShape, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -65,6 +141,7 @@ export default function AddBusinessPage() {
 
     if (!formData.name.trim()) newErrors.name = "Business name is required"
     if (!formData.category) newErrors.category = "Category is required"
+    if (!formData.province) newErrors.province = "Province is required"
     if (!formData.city) newErrors.city = "City is required"
     if (!formData.address.trim()) newErrors.address = "Address is required"
     if (!formData.phone.trim()) newErrors.phone = "Phone number is required"
@@ -97,6 +174,7 @@ export default function AddBusinessPage() {
       fd.append("name", formData.name)
       if (formData.contactPerson !== undefined) fd.append("contactPerson", formData.contactPerson || "")
       fd.append("category", formData.category)
+      fd.append("province", formData.province)
       fd.append("city", formData.city)
       fd.append("address", formData.address)
       fd.append("phone", formData.phone)
@@ -215,7 +293,7 @@ export default function AddBusinessPage() {
                   <p className="text-xs text-muted-foreground mt-1">Optional. Who should we contact for this listing?</p>
                 </div>
 
-                {/* Category and City Row */}
+                {/* Category, Province, City */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="category">
@@ -237,21 +315,95 @@ export default function AddBusinessPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="city">
-                      City <span className="text-destructive">*</span>
-                    </Label>
-                    <Select value={formData.city} onValueChange={(value) => handleInputChange("city", value)}>
-                      <SelectTrigger className={`${errors.city ? "border-destructive" : ""} ${fieldClass}`}>
-                        <SelectValue placeholder="Select city" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cities.map((city) => (
-                          <SelectItem key={city.slug} value={city.slug}>
-                            {city.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="province">Province <span className="text-destructive">*</span></Label>
+                    <Popover open={provinceOpen} onOpenChange={(open) => {
+                      setProvinceOpen(open)
+                      if (open) {
+                        // no-op
+                      }
+                    }}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={provinceOpen}
+                          className={`w-full justify-between ${errors.province ? "border-destructive" : ""}`}
+                        >
+                          {formData.province || (provincesLoading ? "Loading..." : "Select province")}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
+                        <Command>
+                          <CommandInput placeholder="Search province..." autoFocus />
+                          <CommandList>
+                            <CommandEmpty>No province found.</CommandEmpty>
+                            <CommandGroup>
+                              {provinces.map((p) => (
+                                <CommandItem
+                                  key={p.id}
+                                  value={p.name}
+                                  onSelect={() => {
+                                    // Save readable value in form; keep ID internally
+                                    handleInputChange("province", p.name)
+                                    setSelectedProvinceId(p.id)
+                                    // reset dependent
+                                    handleInputChange("city", "")
+                                    setSelectedCityId("")
+                                    setCities([])
+                                    fetchCities(p.id)
+                                    setProvinceOpen(false)
+                                  }}
+                                >
+                                  {p.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {errors.province && <p className="text-sm text-destructive mt-1">{errors.province}</p>}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
+                    <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={cityOpen}
+                          className={`w-full justify-between ${errors.city ? "border-destructive" : ""}`}
+                        >
+                          {formData.city || (citiesLoading ? "Loading..." : "Select city")}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
+                        <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
+                          <CommandInput placeholder="Search city..." autoFocus />
+                          <CommandList>
+                            <CommandEmpty>No city found.</CommandEmpty>
+                            <CommandGroup>
+                              {cities.map((city) => (
+                                <CommandItem
+                                  key={city.id}
+                                  value={city.name}
+                                  onSelect={() => {
+                                    handleInputChange("city", city.name)
+                                    setSelectedCityId(city.id)
+                                    setCityOpen(false)
+                                  }}
+                                >
+                                  {city.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     {errors.city && <p className="text-sm text-destructive mt-1">{errors.city}</p>}
                   </div>
                 </div>
