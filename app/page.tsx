@@ -6,7 +6,8 @@ import { TopListingsSection } from "@/components/top-listings-section"
 import { TopCitiesSection } from "@/components/top-cities-section"
 import { HowItWorksSection } from "@/components/how-it-works-section"
 import { FAQSection } from "@/components/faq-section"
-import { PendingSubmissionsSection } from "@/components/pending-submissions-section"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export default function HomePage() {
   return (
@@ -14,7 +15,12 @@ export default function HomePage() {
       <Header />
       <main>
         <HeroSection />
-        <PendingSubmissionsSection />
+        {/* Button to view all pending submissions */}
+        <div className="container mx-auto px-4 mt-6">
+          <Button asChild variant="outline">
+            <Link href="/search?status=pending">View Pending Submissions</Link>
+          </Button>
+        </div>
         <TopListingsSection />
         <CategoriesSection />
         <TopCitiesSection />

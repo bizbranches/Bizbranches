@@ -5,7 +5,7 @@ import { Footer } from "@/components/footer"
 import { BusinessCard } from "@/components/business-card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { categories, cities } from "@/lib/mock-data"
+import { cities } from "@/lib/mock-data"
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { CategoryFooter } from "@/components/category-footer"
@@ -21,7 +21,11 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true)
   const businessesPerPage = 12
 
-  const category = categories.find((cat) => cat.slug === categorySlug)
+  const prettyName = categorySlug
+    .split("-")
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" ")
+  const category = { name: prettyName, icon: "📦", slug: categorySlug }
 
   // Fetch ALL businesses for this category (paginate through API)
   useEffect(() => {
@@ -75,23 +79,7 @@ export default function CategoryPage() {
   const startIndex = (currentPage - 1) * businessesPerPage
   const currentBusinesses = filteredBusinesses.slice(startIndex, startIndex + businessesPerPage)
 
-  if (!category) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-foreground mb-4">Category Not Found</h1>
-            <p className="text-muted-foreground mb-4">The category you're looking for doesn't exist.</p>
-            <Button asChild>
-              <a href="/">Back to Home</a>
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    )
-  }
+  // Always render; rely on API results for content. If none found, we show the existing empty state.
 
   return (
     <div className="min-h-screen bg-background">

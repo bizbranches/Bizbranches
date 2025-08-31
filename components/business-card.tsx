@@ -32,7 +32,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
           <div className="flex-shrink-0">
             <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
               <img
-                src={business.logoUrl || business.logo || "/placeholder.svg?height=64&width=64&query=business logo"}
+                src={business.logoUrl || business.logo || "/bank-branch.png"}
                 alt={`${business.name} logo`}
                 className="w-full h-full object-contain"
               />

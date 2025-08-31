@@ -45,6 +45,7 @@ export default function SearchPage() {
 
     // Fetch from API when filters or page change
   useEffect(() => {
+    const controller = new AbortController()
     const fetchData = async () => {
       try {
         setIsLoading(true)
@@ -58,7 +59,7 @@ export default function SearchPage() {
         if (status.trim()) params.set("status", status.trim())
         // Note: API defaults to approved only, which is desired for public listings
 
-        const res = await fetch(`/api/business?${params.toString()}`, { cache: "no-store" })
+        const res = await fetch(`/api/business?${params.toString()}`, { cache: "no-store", signal: controller.signal })
         const data = await res.json()
         if (!res.ok || !data?.ok) throw new Error(data?.error || "Failed to fetch listings")
         const items: Business[] = (data.businesses || []).map((b: any) => ({
@@ -79,12 +80,14 @@ export default function SearchPage() {
         setTotal(data.pagination?.total || items.length)
         setTotalPages(data.pagination?.pages || 1)
       } catch (e: any) {
+        if (e?.name === 'AbortError') return
         setError(e?.message || "Failed to load listings")
       } finally {
         setIsLoading(false)
       }
     }
     fetchData()
+    return () => controller.abort()
   }, [query, city, category, status, currentPage])
 
   return (
@@ -127,7 +130,7 @@ export default function SearchPage() {
                         <div className="w-16 h-16 md:w-20 md:h-20 rounded-md border bg-white overflow-hidden flex-shrink-0">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={b.logoUrl || b.imageUrl || "/placeholder.svg?height=80&width=80&text=Logo"}
+                            src={b.logoUrl || b.imageUrl || "/bank-branch.png"}
                             alt={`${b.name} logo`}
                             className="w-full h-full object-contain p-1"
                           />
@@ -135,7 +138,11 @@ export default function SearchPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="font-semibold text-foreground text-lg truncate">
-                              <Link href={`/business/${b.slug || b.id}`}>{b.name}</Link>
+                              {b.status === "pending" ? (
+                                <span title="Awaiting admin approval">{b.name}</span>
+                              ) : (
+                                <Link href={`/business/${b.slug || b.id}`}>{b.name}</Link>
+                              )}
                             </h3>
                             <span className="inline-flex items-center rounded bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
                               {b.category}
@@ -152,9 +159,15 @@ export default function SearchPage() {
                           </div>
                         </div>
                         <div className="hidden md:flex flex-col items-end gap-2">
-                          <Button asChild size="sm" className="bg-primary hover:bg-primary/90">
-                            <Link href={`/business/${b.slug || b.id}`}>View Details</Link>
-                          </Button>
+                          {b.status === "pending" ? (
+                            <Button size="sm" disabled variant="outline" title="Awaiting admin approval">
+                              Pending Approval
+                            </Button>
+                          ) : (
+                            <Button asChild size="sm" className="bg-primary hover:bg-primary/90">
+                              <Link href={`/business/${b.slug || b.id}`}>View Details</Link>
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </li>

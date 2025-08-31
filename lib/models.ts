@@ -194,5 +194,16 @@ export class DatabaseModels {
 export async function getModels(): Promise<DatabaseModels> {
   const { getDb } = await import("./mongodb")
   const db = await getDb()
-  return new DatabaseModels(db)
+  const models = new DatabaseModels(db)
+  // Lazily ensure indexes are created once per runtime
+  try {
+    // @ts-ignore attach flag on function to survive module caching
+    if (!(getModels as any)._indexesCreated) {
+      await models.createIndexes()
+      ;(getModels as any)._indexesCreated = true
+    }
+  } catch (e) {
+    console.warn("Index creation skipped/failed:", (e as any)?.message || e)
+  }
+  return models
 }

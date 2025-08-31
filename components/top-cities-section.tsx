@@ -53,7 +53,7 @@ export function TopCitiesSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {topCities.map((city) => (
-            <Link key={city.slug} href={`/city/${city.slug}`}>
+            <Link key={city.slug} href={`/search?city=${city.slug}`}>
               <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
                 <div className="relative h-48">
                   <img

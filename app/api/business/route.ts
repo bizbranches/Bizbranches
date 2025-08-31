@@ -28,6 +28,8 @@ async function uploadToCloudinary(file: File): Promise<{ url: string; public_id:
     return null
   }
 
+}
+
 // Admin: approve or reject a business
 // Auth: send header "x-admin-secret" or Bearer token matching process.env.ADMIN_SECRET
 export async function PATCH(req: NextRequest) {
@@ -65,7 +67,6 @@ export async function PATCH(req: NextRequest) {
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err?.message || "Failed to update status" }, { status: 500 })
   }
-}
 }
 
 // GET endpoint for retrieving businesses
@@ -126,7 +127,12 @@ export async function GET(req: NextRequest) {
     
     // Build filter object for multiple businesses
     const filter: any = {}
-    if (category) filter.category = category
+    if (category) {
+      // Accept both exact and case-insensitive variants of the slug as stored category names may differ in casing/spaces
+      // e.g., 'beauty-salon' vs 'Beauty & Salon' in DB
+      const categoryRegex = new RegExp(category.replace(/-/g, "[\\s&]*"), 'i')
+      filter.$or = [...(filter.$or || []), { category }, { category: categoryRegex }]
+    }
     if (province) filter.province = province
     if (city) filter.city = city
     if (area) filter.area = area
@@ -146,6 +152,7 @@ export async function GET(req: NextRequest) {
     if (q && q.trim()) {
       const regex = new RegExp(q.trim(), 'i')
       filter.$or = [
+        ...(filter.$or || []),
         { name: regex },
         { description: regex },
         { category: regex },
@@ -155,11 +162,27 @@ export async function GET(req: NextRequest) {
       ]
     }
 
-    console.log('Database filter:', filter)
+    // Build a projection to reduce payload size for list views
+    const projection = {
+      name: 1,
+      slug: 1,
+      category: 1,
+      province: 1,
+      city: 1,
+      area: 1,
+      address: 1,
+      description: 1,
+      logoUrl: 1,
+      imageUrl: 1,
+      phone: 1,
+      email: 1,
+      status: 1,
+      createdAt: 1,
+    } as const
 
     const skip = (page - 1) * limit
     
-    const businesses = await models.businesses.find(filter)
+    const businesses = await models.businesses.find(filter, { projection })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -167,8 +190,8 @@ export async function GET(req: NextRequest) {
 
     const total = await models.businesses.countDocuments(filter)
 
+    // Lightweight log
     console.log(`Found ${businesses.length} businesses, total: ${total}`)
-    console.log('First business (if any):', businesses[0])
 
     // Add id field for each business
     const businessesWithId = businesses.map(business => ({

@@ -176,7 +176,7 @@ export default function BusinessDetailPage() {
             <div className="flex-shrink-0">
               <div className="w-36 md:w-40 self-stretch rounded-xl border bg-white shadow-sm flex items-center justify-center overflow-hidden">
                 <img
-                  src={business.logoUrl || business.imageUrl || "/placeholder.svg?height=112&width=112&query=logo"}
+                  src={business.logoUrl || business.imageUrl || "/bank-branch.png"}
                   alt={`${business.name} logo`}
                   className="h-full w-full object-contain p-2"
                 />
@@ -421,7 +421,7 @@ export default function BusinessDetailPage() {
                           className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
                           <div className="w-12 h-12 rounded-md bg-white border overflow-hidden flex items-center justify-center">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={b.logoUrl || b.imageUrl || "/placeholder.svg?height=48&width=48&text=Logo"} alt={b.name} className="w-full h-full object-contain p-1" />
+                            <img src={b.logoUrl || b.imageUrl || "/bank-branch.png"} alt={b.name} className="w-full h-full object-contain p-1" />
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-foreground truncate">{b.name}</div>
