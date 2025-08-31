@@ -1,11 +1,11 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
 
 export function SearchFilters() {
   const router = useRouter()
@@ -14,6 +14,8 @@ export function SearchFilters() {
   const [query, setQuery] = useState(searchParams.get("q") || "")
   const [city, setCity] = useState(searchParams.get("city") || "all")
   const [category, setCategory] = useState(searchParams.get("category") || "all")
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>([])
+  const [loadingCats, setLoadingCats] = useState(true)
 
   const cities = [
     "karachi",
@@ -28,20 +30,26 @@ export function SearchFilters() {
     "gujranwala",
   ]
 
-  const categories = [
-    { value: "restaurants", label: "Restaurants" },
-    { value: "healthcare", label: "Healthcare" },
-    { value: "education", label: "Education" },
-    { value: "automotive", label: "Automotive" },
-    { value: "retail", label: "Retail" },
-    { value: "beauty-spa", label: "Beauty & Spa" },
-    { value: "real-estate", label: "Real Estate" },
-    { value: "technology", label: "Technology" },
-    { value: "legal", label: "Legal Services" },
-    { value: "construction", label: "Construction" },
-    { value: "travel", label: "Travel & Tourism" },
-    { value: "finance", label: "Financial Services" },
-  ]
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/categories?limit=200`, { cache: "no-store" })
+        const data = await res.json()
+        if (active && data?.ok && Array.isArray(data.categories)) {
+          const mapped = data.categories.map((c: any) => ({ value: c.slug, label: c.name || c.slug }))
+          setCategories(mapped)
+        }
+      } catch {
+        // keep empty on error
+      } finally {
+        if (active) setLoadingCats(false)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const applyFilters = () => {
     const params = new URLSearchParams()
@@ -95,7 +103,7 @@ export function SearchFilters() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (
+              {!loadingCats && categories.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
                   {cat.label}
                 </SelectItem>

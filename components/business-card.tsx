@@ -16,6 +16,7 @@ interface Business {
   description: string
   logo?: string
   logoUrl?: string
+  status?: "pending" | "approved" | "rejected"
 }
 
 interface BusinessCardProps {
@@ -38,7 +39,14 @@ export function BusinessCard({ business }: BusinessCardProps) {
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg text-foreground mb-1 line-clamp-2">{business.name}</h3>
+            <h3 className="font-semibold text-lg text-foreground mb-1 line-clamp-2 flex items-center gap-2">
+              <span className="truncate">{business.name}</span>
+              {business.status === "pending" && (
+                <span className="ml-1 inline-flex items-center rounded bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                  Approval pending
+                </span>
+              )}
+            </h3>
             <div className="flex items-center gap-2 mb-2">
               <span className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
                 {business.category}

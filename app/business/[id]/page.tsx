@@ -201,7 +201,14 @@ export default function BusinessDetailPage() {
                   )}
                 </div>
               </div>
-              <h1 className="text-4xl font-bold text-foreground mb-2 leading-tight">{business.name}</h1>
+              <h1 className="text-4xl font-bold text-foreground mb-2 leading-tight flex items-center gap-3">
+                <span className="truncate">{business.name}</span>
+                {business.status === 'pending' && (
+                  <span className="inline-flex items-center rounded bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide">
+                    Approval pending
+                  </span>
+                )}
+              </h1>
               <div className="flex items-center text-muted-foreground">
                 <MapPin className="h-5 w-5 mr-2" />
                 <span className="text-lg">{business.address}</span>

@@ -3,55 +3,89 @@
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { SearchFilters } from "@/components/search-filters"
-import { BusinessCard } from "@/components/business-card"
 import { Button } from "@/components/ui/button"
 import { useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
-import { mockBusinesses } from "@/lib/mock-data"
+import Link from "next/link"
+
+type Business = {
+  id: string
+  _id?: string
+  slug?: string
+  name: string
+  category: string
+  city: string
+  address: string
+  description: string
+  logoUrl?: string
+  imageUrl?: string
+  phone?: string
+  email?: string
+  status?: "pending" | "approved" | "rejected"
+}
 
 export default function SearchPage() {
   const searchParams = useSearchParams()
-  const [filteredBusinesses, setFilteredBusinesses] = useState(mockBusinesses)
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const businessesPerPage = 12
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
 
   const query = searchParams.get("q") || ""
   const city = searchParams.get("city") || ""
   const category = searchParams.get("category") || ""
+  const status = searchParams.get("status") || ""
+  const limit = 12
 
   useEffect(() => {
-    let filtered = mockBusinesses
-
-    // Filter by search query
-    if (query) {
-      filtered = filtered.filter(
-        (business) =>
-          business.name.toLowerCase().includes(query.toLowerCase()) ||
-          business.category.toLowerCase().includes(query.toLowerCase()) ||
-          business.description.toLowerCase().includes(query.toLowerCase()),
-      )
-    }
-
-    // Filter by city
-    if (city) {
-      filtered = filtered.filter((business) => business.city.toLowerCase() === city.toLowerCase())
-    }
-
-    // Filter by category
-    if (category) {
-      filtered = filtered.filter(
-        (business) => business.category.toLowerCase().replace(/\s+/g, "-") === category.toLowerCase(),
-      )
-    }
-
-    setFilteredBusinesses(filtered)
     setCurrentPage(1)
   }, [query, city, category])
 
-  // Pagination
-  const totalPages = Math.ceil(filteredBusinesses.length / businessesPerPage)
-  const startIndex = (currentPage - 1) * businessesPerPage
-  const currentBusinesses = filteredBusinesses.slice(startIndex, startIndex + businessesPerPage)
+    // Fetch from API when filters or page change
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const params = new URLSearchParams()
+        params.set("page", String(currentPage))
+        params.set("limit", String(limit))
+        if (query.trim()) params.set("q", query.trim())
+        if (city.trim()) params.set("city", city.trim())
+        if (category.trim()) params.set("category", category.trim())
+        if (status.trim()) params.set("status", status.trim())
+        // Note: API defaults to approved only, which is desired for public listings
+
+        const res = await fetch(`/api/business?${params.toString()}`, { cache: "no-store" })
+        const data = await res.json()
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "Failed to fetch listings")
+        const items: Business[] = (data.businesses || []).map((b: any) => ({
+          id: b.id || b._id?.toString?.() || "",
+          slug: b.slug,
+          name: b.name,
+          category: b.category,
+          city: b.city,
+          address: b.address,
+          description: b.description,
+          logoUrl: b.logoUrl,
+          imageUrl: b.imageUrl,
+          phone: b.phone,
+          email: b.email,
+          status: b.status,
+        }))
+        setBusinesses(items)
+        setTotal(data.pagination?.total || items.length)
+        setTotalPages(data.pagination?.pages || 1)
+      } catch (e: any) {
+        setError(e?.message || "Failed to load listings")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchData()
+  }, [query, city, category, status, currentPage])
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,7 +98,7 @@ export default function SearchPage() {
             {query && <span className="text-muted-foreground"> for "{query}"</span>}
           </h1>
           <p className="text-muted-foreground">
-            Found {filteredBusinesses.length} businesses
+            Found {total} businesses
             {city && <span> in {city.charAt(0).toUpperCase() + city.slice(1)}</span>}
             {category && <span> in {category.replace("-", " ")}</span>}
           </p>
@@ -78,17 +112,58 @@ export default function SearchPage() {
 
           {/* Results */}
           <div className="lg:col-span-3">
-            {currentBusinesses.length > 0 ? (
+            {isLoading && (
+              <div className="text-center text-muted-foreground py-12">Loading listings...</div>
+            )}
+            {error && (
+              <div className="text-center text-destructive py-8">{error}</div>
+            )}
+            {!isLoading && !error && businesses.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-                  {currentBusinesses.map((business) => (
-                    <BusinessCard key={business.id} business={business} />
+                <ul className="divide-y rounded-lg border bg-card">
+                  {businesses.map((b) => (
+                    <li key={b.id} className="p-4 md:p-5">
+                      <div className="flex gap-4">
+                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-md border bg-white overflow-hidden flex-shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={b.logoUrl || b.imageUrl || "/placeholder.svg?height=80&width=80&text=Logo"}
+                            alt={`${b.name} logo`}
+                            className="w-full h-full object-contain p-1"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-semibold text-foreground text-lg truncate">
+                              <Link href={`/business/${b.slug || b.id}`}>{b.name}</Link>
+                            </h3>
+                            <span className="inline-flex items-center rounded bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                              {b.category}
+                            </span>
+                            {b.status === "pending" && (
+                              <span className="inline-flex items-center rounded bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                                Approval pending
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{b.description}</p>
+                          <div className="text-xs text-muted-foreground mt-2">
+                            {b.city && <span className="capitalize">{b.city}</span>} {b.address && <span>• {b.address}</span>}
+                          </div>
+                        </div>
+                        <div className="hidden md:flex flex-col items-end gap-2">
+                          <Button asChild size="sm" className="bg-primary hover:bg-primary/90">
+                            <Link href={`/business/${b.slug || b.id}`}>View Details</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex justify-center items-center space-x-2">
+                  <div className="flex justify-center items-center space-x-2 mt-6">
                     <Button
                       variant="outline"
                       onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -98,7 +173,7 @@ export default function SearchPage() {
                     </Button>
 
                     <span className="text-muted-foreground">
-                      Page {currentPage} of {totalPages}
+                      Page {currentPage} of {totalPages} • {total} result{total !== 1 ? 's' : ''}
                     </span>
 
                     <Button

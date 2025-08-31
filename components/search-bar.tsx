@@ -14,6 +14,7 @@ interface BusinessSuggestion {
   city: string
   category: string
   logoUrl?: string
+  slug?: string
 }
 
 interface CategorySuggestion {
@@ -27,8 +28,9 @@ export function SearchBar() {
   const [suggestions, setSuggestions] = useState<{ businesses: BusinessSuggestion[]; categories: CategorySuggestion[] }>({ businesses: [], categories: [] })
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
-  const debouncedQuery = useDebounce(query, 300)
+  const debouncedQuery = useDebounce(query, 500)
   const searchRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -41,7 +43,7 @@ export function SearchBar() {
   }, [])
 
   useEffect(() => {
-    if (debouncedQuery.length < 1) {
+    if (debouncedQuery.trim().length < 2) {
       setSuggestions({ businesses: [], categories: [] })
       setIsOpen(false)
       return
@@ -50,14 +52,23 @@ export function SearchBar() {
     const fetchSuggestions = async () => {
       setIsLoading(true)
       try {
-        const res = await fetch(`/api/search?q=${debouncedQuery}`)
+        // Abort any in-flight request
+        if (abortRef.current) {
+          abortRef.current.abort()
+        }
+        const controller = new AbortController()
+        abortRef.current = controller
+
+        const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}` , { signal: controller.signal })
         const data = await res.json()
         if (data.ok) {
           setSuggestions({ businesses: data.businesses || [], categories: data.categories || [] })
           setIsOpen(true)
         }
       } catch (error) {
-        console.error("Failed to fetch search suggestions:", error)
+        if ((error as any)?.name !== 'AbortError') {
+          console.error("Failed to fetch search suggestions:", error)
+        }
       } finally {
         setIsLoading(false)
       }
@@ -114,7 +125,7 @@ export function SearchBar() {
               {suggestions.businesses.map((business) => (
                 <li key={business.id}>
                   <Link
-                    href={`/business/${business.id}`}
+                    href={`/business/${(business as any).slug || business.id}`}
                     className="flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors"
                     onClick={() => setIsOpen(false)}
                   >

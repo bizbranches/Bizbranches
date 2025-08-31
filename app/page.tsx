@@ -6,6 +6,7 @@ import { TopListingsSection } from "@/components/top-listings-section"
 import { TopCitiesSection } from "@/components/top-cities-section"
 import { HowItWorksSection } from "@/components/how-it-works-section"
 import { FAQSection } from "@/components/faq-section"
+import { PendingSubmissionsSection } from "@/components/pending-submissions-section"
 
 export default function HomePage() {
   return (
@@ -13,6 +14,7 @@ export default function HomePage() {
       <Header />
       <main>
         <HeroSection />
+        <PendingSubmissionsSection />
         <TopListingsSection />
         <CategoriesSection />
         <TopCitiesSection />

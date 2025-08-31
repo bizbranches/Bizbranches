@@ -22,18 +22,20 @@ export async function GET(req: NextRequest) {
 
     // Fetch businesses and categories in parallel
     const [businesses, categories] = await Promise.all([
-      models.businesses.find(
-        {
-          $or: [
-            { name: { $regex: regex } },
-            { description: { $regex: regex } },
-          ],
-          status: 'approved', // Only search approved businesses
-        },
-        { projection: { name: 1, city: 1, category: 1, logoUrl: 1 } } // Project only needed fields
-      )
-      .limit(5) // Limit business results
-      .toArray(),
+      models.businesses
+        .find(
+          {
+            $or: [
+              { name: { $regex: regex } },
+              { description: { $regex: regex } },
+            ],
+            status: 'approved', // Only search approved businesses
+          },
+          { projection: { name: 1, city: 1, category: 1, logoUrl: 1, slug: 1 } } // Include slug for linking
+        )
+        .limit(5) // Limit business results
+        .maxTimeMS(300)
+        .toArray(),
 
       models.categories.find(
         { name: { $regex: regex } },

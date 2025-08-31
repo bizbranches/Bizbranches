@@ -27,6 +27,45 @@ async function uploadToCloudinary(file: File): Promise<{ url: string; public_id:
   } catch (e) {
     return null
   }
+
+// Admin: approve or reject a business
+// Auth: send header "x-admin-secret" or Bearer token matching process.env.ADMIN_SECRET
+export async function PATCH(req: NextRequest) {
+  try {
+    const adminSecret = process.env.ADMIN_SECRET
+    if (!adminSecret) {
+      return NextResponse.json({ ok: false, error: "Missing ADMIN_SECRET" }, { status: 500 })
+    }
+
+    const bearer = req.headers.get("authorization") || ""
+    const headerSecret = req.headers.get("x-admin-secret") || (bearer.startsWith("Bearer ") ? bearer.slice(7) : "")
+    if (headerSecret !== adminSecret) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await req.json().catch(() => ({})) as { id?: string; status?: string }
+    const id = body.id?.trim()
+    const nextStatus = body.status?.trim() as "approved" | "pending" | "rejected" | undefined
+    if (!id || !nextStatus || !["approved", "pending", "rejected"].includes(nextStatus)) {
+      return NextResponse.json({ ok: false, error: "id and valid status are required" }, { status: 400 })
+    }
+
+    const { ObjectId } = require("mongodb") as typeof import("mongodb")
+    const models = await getModels()
+    const result = await models.businesses.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: nextStatus, updatedAt: new Date() } }
+    )
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ ok: false, error: "Business not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ ok: true, modifiedCount: result.modifiedCount })
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err?.message || "Failed to update status" }, { status: 500 })
+  }
+}
 }
 
 // GET endpoint for retrieving businesses
@@ -91,7 +130,19 @@ export async function GET(req: NextRequest) {
     if (province) filter.province = province
     if (city) filter.city = city
     if (area) filter.area = area
-    if (status) filter.status = status
+    if (status) {
+      if (status === 'all') {
+        // no status filter; include all statuses
+      } else if (status.includes(',')) {
+        filter.status = { $in: status.split(',').map(s => s.trim()).filter(Boolean) }
+      } else {
+        filter.status = status
+      }
+    } else {
+      // By default, list only approved businesses on the public/main site
+      // Admin can pass ?status=pending or ?status=all (handled client-side) as needed
+      filter.status = "approved"
+    }
     if (q && q.trim()) {
       const regex = new RegExp(q.trim(), 'i')
       filter.$or = [

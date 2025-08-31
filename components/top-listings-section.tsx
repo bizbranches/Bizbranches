@@ -155,7 +155,7 @@ export function TopListingsSection() {
         })()}
 
         <div className="text-center mt-12">
-          <Link href="/search">
+          <Link href="/search?status=all">
             <Button size="lg" className="px-8">
               View All Listings
             </Button>
