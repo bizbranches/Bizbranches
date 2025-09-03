@@ -7,6 +7,7 @@ import { Footer } from '@/components/footer'
 import { GlobalTopbar } from '@/components/global-topbar'
 import GlobalContainer from '@/components/global-container'
 import { GlobalBackButton } from '@/components/global-back-button'
+import { Suspense } from 'react'
 
 export const metadata: Metadata = {
   title: 'BizBranches',
@@ -24,7 +25,9 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Header />
         <GlobalBackButton />
-        <GlobalTopbar />
+        <Suspense fallback={null}>
+          <GlobalTopbar />
+        </Suspense>
         <GlobalContainer>
           {children}
         </GlobalContainer>
