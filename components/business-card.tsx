@@ -32,9 +32,31 @@ export function BusinessCard({ business }: BusinessCardProps) {
           <div className="flex-shrink-0">
             <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
               <img
-                src={business.logoUrl || business.logo || "/bank-branch.png"}
+                src={
+                  (business.logoUrl || business.logo) 
+                    ? (() => {
+                        // If it's already a full URL, use it directly
+                        const logo = business.logoUrl || business.logo || '';
+                        if (logo.startsWith('http')) return logo;
+                        
+                        // If it's a Cloudinary public_id, construct the URL
+                        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+                        if (cloudName && !logo.includes('/') && !logo.startsWith('.')) {
+                          return `https://res.cloudinary.com/${cloudName}/image/upload/c_fit,w_200,h_200,q_auto,f_auto/${logo}`;
+                        }
+                        
+                        // Fallback to the raw logo value or default
+                        return logo || "/bank-branch.png";
+                      })()
+                    : "/bank-branch.png"
+                }
                 alt={`${business.name} logo`}
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  // Fallback to default if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/bank-branch.png";
+                }}
               />
             </div>
           </div>

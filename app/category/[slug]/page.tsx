@@ -1,8 +1,5 @@
 "use client"
-
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import { BusinessCard } from "@/components/business-card"
+import BusinessListItem from "@/components/business-list-item"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cities } from "@/lib/mock-data"
@@ -83,8 +80,6 @@ export default function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-
       <main className="container mx-auto px-4 py-8">
         {/* Header Section */}
         <div className="mb-8">
@@ -127,9 +122,11 @@ export default function CategoryPage() {
           </div>
         ) : currentBusinesses.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            <div className="mb-8 divide-y divide-gray-100 border-y">
               {currentBusinesses.map((business) => (
-                <BusinessCard key={business.id} business={business} />
+                <div key={business.id} className="py-4">
+                  <BusinessListItem business={business} />
+                </div>
               ))}
             </div>
 
@@ -171,7 +168,6 @@ export default function CategoryPage() {
           </div>
         )}
       </main>
-
       <CategoryFooter categorySlug={categorySlug} categoryName={category.name} categoryIcon={category.icon} />
     </div>
   )

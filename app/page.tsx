@@ -1,5 +1,3 @@
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
 import { HeroSection } from "@/components/hero-section"
 import { CategoriesSection } from "@/components/categories-section"
 import { TopListingsSection } from "@/components/top-listings-section"
@@ -12,7 +10,6 @@ import Link from "next/link"
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main>
         <HeroSection />
         {/* Button to view all pending submissions */}
@@ -27,7 +24,6 @@ export default function HomePage() {
         <HowItWorksSection />
         <FAQSection />
       </main>
-      <Footer />
     </div>
   )
 }

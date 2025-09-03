@@ -5,6 +5,7 @@ export const BusinessSchema = z.object({
   name: z.string().min(1, "Business name is required").max(100, "Name too long"),
   slug: z.string().min(1, "Slug is required").max(140, "Slug too long"),
   category: z.string().min(1, "Category is required"),
+  subCategory: z.string().optional().transform(val => val === "" ? undefined : val),
   province: z.string().min(1, "Province is required"),
   city: z.string().min(1, "City is required"),
   address: z.string().min(1, "Address is required").max(500, "Address too long"),
@@ -13,6 +14,10 @@ export const BusinessSchema = z.object({
   whatsapp: z.string().optional().transform(val => val === "" ? undefined : val),
   email: z.string().email("Invalid email format"),
   description: z.string().min(10, "Description must be at least 10 characters").max(2000, "Description too long"),
+  websiteUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
+  facebookUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
+  gmbUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
+  youtubeUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
   logoUrl: z.string().url().optional(),
   logoPublicId: z.string().optional(),
   status: z.enum(["pending", "approved", "rejected"]).default("pending"),
@@ -29,6 +34,7 @@ export type Business = z.infer<typeof BusinessSchema>
 export const CreateBusinessSchema = z.object({
   name: z.string().min(1, "Business name is required").max(100, "Name too long"),
   category: z.string().min(1, "Category is required"),
+  subCategory: z.string().optional().transform(val => val === "" ? undefined : val),
   province: z.string().min(1, "Province is required"),
   city: z.string().min(1, "City is required"),
   address: z.string().min(1, "Address is required").max(500, "Address too long"),
@@ -37,6 +43,10 @@ export const CreateBusinessSchema = z.object({
   whatsapp: z.string().optional().transform(val => val === "" ? undefined : val),
   email: z.string().email("Invalid email format"),
   description: z.string().min(10, "Description must be at least 10 characters").max(2000, "Description too long"),
+  websiteUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
+  facebookUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
+  gmbUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
+  youtubeUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
 })
 
 export type CreateBusiness = z.infer<typeof CreateBusinessSchema>
@@ -47,8 +57,19 @@ export const CategorySchema = z.object({
   slug: z.string().min(1, "Category slug is required"),
   icon: z.string().optional(),
   description: z.string().optional(),
+  imageUrl: z.string().url().optional(),
+  imagePublicId: z.string().optional(),
   count: z.number().default(0),
   isActive: z.boolean().default(true),
+  subcategories: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        slug: z.string().min(1),
+      })
+    )
+    .optional()
+    .default([]),
   createdAt: z.date().default(() => new Date()),
 })
 

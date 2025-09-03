@@ -1,7 +1,4 @@
 "use client"
-
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -9,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Phone, Mail, MapPin, MessageCircle, ArrowLeft, Star, Clock } from "lucide-react"
+import { Phone, Mail, MapPin, MessageCircle, ArrowLeft, Star, Clock, Globe, Facebook, Youtube } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -135,39 +132,30 @@ export default function BusinessDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="max-w-4xl mx-auto px-6 py-8">
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Loading business details...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <main className="max-w-4xl mx-auto px-6 py-8">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading business details...</p>
+        </div>
+      </main>
     )
   }
 
   if (!business) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="max-w-4xl mx-auto px-6 py-8">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-foreground mb-4">Business Not Found</h1>
-            <p className="text-muted-foreground mb-4">The business you're looking for doesn't exist.</p>
-            <Button asChild>
-              <Link href="/">Back to Home</Link>
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <main className="max-w-4xl mx-auto px-6 py-8">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold text-foreground mb-4">Business Not Found</h1>
+          <p className="text-muted-foreground mb-4">The business you're looking for doesn't exist.</p>
+          <Button asChild>
+            <Link href="/">Back to Home</Link>
+          </Button>
+        </div>
+      </main>
     )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <Header />
 
       <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-b">
         <div className="max-w-7xl mx-auto px-6 py-8">
@@ -176,7 +164,7 @@ export default function BusinessDetailPage() {
             <div className="flex-shrink-0">
               <div className="w-36 md:w-40 self-stretch rounded-xl border bg-white shadow-sm flex items-center justify-center overflow-hidden">
                 <img
-                  src={business.logoUrl || business.imageUrl || "/bank-branch.png"}
+                  src={business.logoUrl || (business as any).logo || business.imageUrl || "/bank-branch.png"}
                   alt={`${business.name} logo`}
                   className="h-full w-full object-contain p-2"
                 />
@@ -220,12 +208,35 @@ export default function BusinessDetailPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" asChild className="hover:bg-primary/10">
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Search
-            </Link>
-          </Button>
+          {/* City / Category / Subcategory breadcrumb moved here */}
+          <div className="text-sm text-muted-foreground">
+            {(() => {
+              const city = String(business.city || "")
+              const category = String(business.category || "")
+              const sub = business.subCategory ? String(business.subCategory) : ""
+              const catSlug = category.toLowerCase().replace(/\s+/g, "-")
+              const subSlug = sub ? sub.toLowerCase().replace(/\s+/g, "-") : ""
+              return (
+                <>
+                  <Link href={`/city/${city}`}>
+                    <span className="capitalize hover:underline">{city}</span>
+                  </Link>
+                  <span className="mx-1">/</span>
+                  <Link href={`/category/${catSlug}`}>
+                    <span className="capitalize hover:underline">{category.replace(/-/g, " ")}</span>
+                  </Link>
+                  {sub && (
+                    <>
+                      <span className="mx-1">/</span>
+                      <Link href={`/category/${catSlug}?subcategory=${encodeURIComponent(subSlug)}`}>
+                        <span className="capitalize hover:underline">{sub.replace(/-/g, " ")}</span>
+                      </Link>
+                    </>
+                  )}
+                </>
+              )
+            })()}
+          </div>
           <Dialog open={openReview} onOpenChange={setOpenReview}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90">Leave a review</Button>
@@ -353,6 +364,82 @@ export default function BusinessDetailPage() {
                       </div>
                     )}
 
+                    {business.websiteUrl && (
+                      <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="p-2 bg-slate-200 rounded-lg mr-3">
+                              <Globe className="h-5 w-5 text-slate-700" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">Website</p>
+                              <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.websiteUrl}</p>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={business.websiteUrl} target="_blank" rel="noopener noreferrer">Visit</a>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {business.facebookUrl && (
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="p-2 bg-blue-200 rounded-lg mr-3">
+                              <Facebook className="h-5 w-5 text-blue-700" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">Facebook</p>
+                              <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.facebookUrl}</p>
+                            </div>
+                          </div>
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" asChild>
+                            <a href={business.facebookUrl} target="_blank" rel="noopener noreferrer">Open</a>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {business.gmbUrl && (
+                      <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="p-2 bg-emerald-200 rounded-lg mr-3">
+                              <MapPin className="h-5 w-5 text-emerald-700" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">Google Business</p>
+                              <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.gmbUrl}</p>
+                            </div>
+                          </div>
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" asChild>
+                            <a href={business.gmbUrl} target="_blank" rel="noopener noreferrer">Open</a>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {business.youtubeUrl && (
+                      <div className="p-4 bg-gradient-to-r from-rose-50 to-rose-100 rounded-xl border border-rose-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="p-2 bg-rose-200 rounded-lg mr-3">
+                              <Youtube className="h-5 w-5 text-rose-700" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">YouTube</p>
+                              <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.youtubeUrl}</p>
+                            </div>
+                          </div>
+                          <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white" asChild>
+                            <a href={business.youtubeUrl} target="_blank" rel="noopener noreferrer">Open</a>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
                     {business.whatsapp && (
                       <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
                         <div className="flex items-center justify-between">
@@ -421,7 +508,7 @@ export default function BusinessDetailPage() {
                           className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
                           <div className="w-12 h-12 rounded-md bg-white border overflow-hidden flex items-center justify-center">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={b.logoUrl || b.imageUrl || "/bank-branch.png"} alt={b.name} className="w-full h-full object-contain p-1" />
+                            <img src={b.logoUrl || (b as any).logo || b.imageUrl || "/bank-branch.png"} alt={b.name} className="w-full h-full object-contain p-1" />
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-foreground truncate">{b.name}</div>
@@ -512,7 +599,6 @@ export default function BusinessDetailPage() {
         </section>
       </main>
 
-      <Footer />
     </div>
   )
 }

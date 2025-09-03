@@ -5,6 +5,29 @@ import cloudinary from "@/lib/cloudinary"
 
 export const runtime = "nodejs"
 
+// Helper to build a Cloudinary CDN URL from a public_id when logoUrl is missing
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME
+const buildCdnUrl = (publicId?: string | null) => {
+  if (!publicId || !process.env.CLOUDINARY_CLOUD_NAME) return undefined
+  
+  // If it's already a full URL, return as is
+  if (publicId.startsWith('http')) return publicId
+  
+  // Handle Cloudinary public_id format (may include path or extension)
+  // Remove any Cloudinary URL prefix if present
+  let cleanId = publicId
+    .replace(/^https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//, '') // Remove full URL prefix
+    .replace(/^.*\//, '') // Remove any path
+    .replace(/\.[^/.]+$/, '') // Remove file extension
+    
+  // If it looks like a Cloudinary public_id (no slashes, no dots except possibly at extension)
+  if (!cleanId.includes('/') && !cleanId.startsWith('.')) {
+    return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/c_fit,w_200,h_200,q_auto,f_auto/${cleanId}`
+  }
+  
+  return undefined
+}
+
 async function uploadToCloudinary(file: File): Promise<{ url: string; public_id: string } | null> {
   try {
     const arrayBuffer = await file.arrayBuffer()
@@ -81,10 +104,11 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status')
     const q = searchParams.get('q')
     const slug = searchParams.get('slug')
+    const subCategoryParam = searchParams.get('subcategory') || searchParams.get('subCategory')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '12')
 
-    console.log('GET /api/business - Query params:', { id, slug, category, province, city, area, status, q, page, limit })
+    console.log('GET /api/business - Query params:', { id, slug, category, subCategory: subCategoryParam, province, city, area, status, q, page, limit })
 
     const models = await getModels()
     
@@ -99,7 +123,15 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json({
         ok: true,
-        business: { ...business, id: business._id.toString() }
+        business: {
+          ...business,
+          // Derive a logo URL if missing but we have a public id or a non-URL 'logo' value
+          logoUrl:
+            business.logoUrl ||
+            buildCdnUrl((business as any).logoPublicId) ||
+            (/^https?:\/\//i.test((business as any).logo || '') ? undefined : buildCdnUrl((business as any).logo)),
+          id: business._id.toString(),
+        }
       })
     }
 
@@ -121,7 +153,14 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json({
         ok: true,
-        business: { ...business, id: business._id.toString() }
+        business: {
+          ...business,
+          logoUrl:
+            business.logoUrl ||
+            buildCdnUrl((business as any).logoPublicId) ||
+            (/^https?:\/\//i.test((business as any).logo || '') ? undefined : buildCdnUrl((business as any).logo)),
+          id: business._id.toString(),
+        }
       })
     }
     
@@ -132,6 +171,10 @@ export async function GET(req: NextRequest) {
       // e.g., 'beauty-salon' vs 'Beauty & Salon' in DB
       const categoryRegex = new RegExp(category.replace(/-/g, "[\\s&]*"), 'i')
       filter.$or = [...(filter.$or || []), { category }, { category: categoryRegex }]
+    }
+    if (subCategoryParam) {
+      const subcatRegex = new RegExp(subCategoryParam.replace(/-/g, "[\\s&]*"), 'i')
+      filter.$or = [...(filter.$or || []), { subCategory: subCategoryParam }, { subCategory: subcatRegex }]
     }
     if (province) filter.province = province
     if (city) filter.city = city
@@ -167,15 +210,22 @@ export async function GET(req: NextRequest) {
       name: 1,
       slug: 1,
       category: 1,
+      subCategory: 1,
       province: 1,
       city: 1,
       area: 1,
       address: 1,
       description: 1,
+      logo: 1,
       logoUrl: 1,
+      logoPublicId: 1,
       imageUrl: 1,
       phone: 1,
       email: 1,
+      websiteUrl: 1,
+      facebookUrl: 1,
+      gmbUrl: 1,
+      youtubeUrl: 1,
       status: 1,
       createdAt: 1,
     } as const
@@ -196,7 +246,12 @@ export async function GET(req: NextRequest) {
     // Add id field for each business
     const businessesWithId = businesses.map(business => ({
       ...business,
-      id: business._id.toString()
+      // If logoUrl missing but public id or 'logo' public_id is present, derive a CDN URL
+      logoUrl:
+        (business as any).logoUrl ||
+        buildCdnUrl((business as any).logoPublicId) ||
+        (/^https?:\/\//i.test((business as any).logo || '') ? undefined : buildCdnUrl((business as any).logo)),
+      id: (business as any)._id?.toString?.() || business._id.toString(),
     }))
 
     return NextResponse.json({
@@ -226,6 +281,7 @@ export async function POST(req: Request) {
     const formData = {
       name: String(form.get("name") || "").trim(),
       category: String(form.get("category") || "").trim(),
+      subCategory: String(form.get("subCategory") || form.get("subcategory") || "").trim(),
       province: String(form.get("province") || "").trim(),
       city: String(form.get("city") || "").trim(),
       address: String(form.get("address") || "").trim(),
@@ -234,6 +290,10 @@ export async function POST(req: Request) {
       whatsapp: String(form.get("whatsapp") || "").trim() || "",
       email: String(form.get("email") || "").trim(),
       description: String(form.get("description") || "").trim(),
+      websiteUrl: String(form.get("websiteUrl") || "").trim(),
+      facebookUrl: String(form.get("facebookUrl") || "").trim(),
+      gmbUrl: String(form.get("gmbUrl") || "").trim(),
+      youtubeUrl: String(form.get("youtubeUrl") || "").trim(),
     }
 
     console.log("Raw form data received:", formData)
