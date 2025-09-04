@@ -8,6 +8,7 @@ export const BusinessSchema = z.object({
   subCategory: z.string().optional().transform(val => val === "" ? undefined : val),
   province: z.string().min(1, "Province is required"),
   city: z.string().min(1, "City is required"),
+  postalCode: z.string().min(3).max(12).optional().transform(val => val === "" ? undefined : val),
   address: z.string().min(1, "Address is required").max(500, "Address too long"),
   phone: z.string().min(1, "Phone number is required").max(20, "Phone number too long"),
   contactPerson: z.string().optional().transform(val => val === "" ? undefined : val),
@@ -18,7 +19,12 @@ export const BusinessSchema = z.object({
   facebookUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
   gmbUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
   youtubeUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
-  logoUrl: z.string().url().optional(),
+  // Bank-specific optional fields
+  swiftCode: z.string().optional().transform(val => (val === "" ? undefined : val)),
+  branchCode: z.string().optional().transform(val => (val === "" ? undefined : val)),
+  cityDialingCode: z.string().optional().transform(val => (val === "" ? undefined : val)),
+  iban: z.string().optional().transform(val => (val === "" ? undefined : val)),
+  logoUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
   logoPublicId: z.string().optional(),
   status: z.enum(["pending", "approved", "rejected"]).default("pending"),
   ratingAvg: z.number().optional(),
@@ -37,16 +43,49 @@ export const CreateBusinessSchema = z.object({
   subCategory: z.string().optional().transform(val => val === "" ? undefined : val),
   province: z.string().min(1, "Province is required"),
   city: z.string().min(1, "City is required"),
+  postalCode: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().min(3).max(12).optional(),
+  ),
   address: z.string().min(1, "Address is required").max(500, "Address too long"),
   phone: z.string().min(1, "Phone number is required").max(20, "Phone number too long"),
   contactPerson: z.string().optional().transform(val => val === "" ? undefined : val),
   whatsapp: z.string().optional().transform(val => val === "" ? undefined : val),
   email: z.string().email("Invalid email format"),
   description: z.string().min(10, "Description must be at least 10 characters").max(2000, "Description too long"),
-  websiteUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
-  facebookUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
-  gmbUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
-  youtubeUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
+  websiteUrl: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().url().optional(),
+  ),
+  facebookUrl: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().url().optional(),
+  ),
+  gmbUrl: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().url().optional(),
+  ),
+  youtubeUrl: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().url().optional(),
+  ),
+  // Bank-specific optional fields
+  swiftCode: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().optional(),
+  ),
+  branchCode: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().optional(),
+  ),
+  cityDialingCode: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().optional(),
+  ),
+  iban: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().optional(),
+  ),
 })
 
 export type CreateBusiness = z.infer<typeof CreateBusinessSchema>

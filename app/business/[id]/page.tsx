@@ -163,11 +163,26 @@ export default function BusinessDetailPage() {
             {/* Logo box */}
             <div className="flex-shrink-0">
               <div className="w-36 md:w-40 self-stretch rounded-xl border bg-white shadow-sm flex items-center justify-center overflow-hidden">
-                <img
-                  src={business.logoUrl || (business as any).logo || business.imageUrl || "/bank-branch.png"}
-                  alt={`${business.name} logo`}
-                  className="h-full w-full object-contain p-2"
-                />
+                {(() => {
+                  const raw = (business.logoUrl || (business as any).logo || business.imageUrl || "") as string
+                  const src = (() => {
+                    if (/^https?:\/\//i.test(raw)) return raw
+                    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string | undefined
+                    if (!raw) return "/bank-branch.png"
+                    if (!cloudName) return "/bank-branch.png"
+                    const cleanId = raw.replace(/\.[^/.]+$/, "")
+                    return `https://res.cloudinary.com/${cloudName}/image/upload/c_fit,w_200,h_200,q_auto,f_auto/${cleanId}`
+                  })()
+                  // eslint-disable-next-line @next/next/no-img-element
+                  return (
+                    <img
+                      src={src}
+                      alt={`${business.name} logo`}
+                      className="h-full w-full object-contain p-2"
+                      onError={(e) => { (e.target as HTMLImageElement).src = "/bank-branch.png" }}
+                    />
+                  )
+                })()}
               </div>
             </div>
 
@@ -292,6 +307,44 @@ export default function BusinessDetailPage() {
                   </p>
                 </div>
 
+                {/* Bank Details: show directly below description when category is Bank and fields exist */}
+                {(() => {
+                  const isBank = String(business.category || '').toLowerCase().includes('bank')
+                  const hasAny = Boolean(business.swiftCode || business.branchCode || business.cityDialingCode || business.iban)
+                  if (!isBank || !hasAny) return null
+                  return (
+                    <div className="mt-6">
+                      <h3 className="text-xl font-semibold text-foreground mb-4">Bank Details</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {business.swiftCode && (
+                          <div className="p-4 rounded-lg border bg-muted/50">
+                            <div className="text-sm text-muted-foreground">Swift Code</div>
+                            <div className="font-medium text-foreground break-all">{business.swiftCode}</div>
+                          </div>
+                        )}
+                        {business.branchCode && (
+                          <div className="p-4 rounded-lg border bg-muted/50">
+                            <div className="text-sm text-muted-foreground">Branch Code</div>
+                            <div className="font-medium text-foreground break-all">{business.branchCode}</div>
+                          </div>
+                        )}
+                        {business.cityDialingCode && (
+                          <div className="p-4 rounded-lg border bg-muted/50">
+                            <div className="text-sm text-muted-foreground">City Dialing Code</div>
+                            <div className="font-medium text-foreground break-all">{business.cityDialingCode}</div>
+                          </div>
+                        )}
+                        {business.iban && (
+                          <div className="p-4 rounded-lg border bg-muted/50">
+                            <div className="text-sm text-muted-foreground">IBAN</div>
+                            <div className="font-medium text-foreground break-all">{business.iban}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <Clock className="h-8 w-8 text-primary mx-auto mb-2" />
@@ -308,7 +361,7 @@ export default function BusinessDetailPage() {
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <MapPin className="h-8 w-8 text-primary mx-auto mb-2" />
                     <h4 className="font-semibold text-foreground">City</h4>
-                    <p className="text-sm text-muted-foreground">{business.city}</p>
+                    <p className="text-sm text-muted-foreground">{business.city}{business.postalCode ? ` (${business.postalCode})` : ''}</p>
                   </div>
                 </div>
               </CardContent>

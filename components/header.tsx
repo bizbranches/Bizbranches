@@ -22,9 +22,14 @@ export function Header() {
             </Link>
           </nav>
 
-          <Button asChild variant="secondary" className="hidden md:inline-flex">
-            <Link href="/add">Add Your Business</Link>
-          </Button>
+          <div className="hidden md:flex items-center gap-2">
+            <Button asChild variant="secondary">
+              <Link href="/add">Add Your Business</Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/pending">Pending Business</Link>
+            </Button>
+          </div>
 
           {/* Mobile menu button */}
           <Button variant="ghost" size="sm" className="md:hidden">

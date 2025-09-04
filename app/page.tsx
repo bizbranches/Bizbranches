@@ -12,12 +12,6 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <main>
         <HeroSection />
-        {/* Button to view all pending submissions */}
-        <div className="container mx-auto px-4 mt-6">
-          <Button asChild variant="outline">
-            <Link href="/search?status=pending">View Pending Submissions</Link>
-          </Button>
-        </div>
         <TopListingsSection />
         <CategoriesSection />
         <TopCitiesSection />

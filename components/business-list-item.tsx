@@ -20,9 +20,10 @@ interface Business {
 
 interface Props {
   business: Business
+  compact?: boolean
 }
 
-export default function BusinessListItem({ business }: Props) {
+export default function BusinessListItem({ business, compact = false }: Props) {
   return (
     <div className="w-full">
       <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
@@ -32,13 +33,13 @@ export default function BusinessListItem({ business }: Props) {
             src={
               (business.logoUrl || business.logo)
                 ? (() => {
-                    const logo = business.logoUrl || business.logo || ''
-                    if (logo.startsWith('http')) return logo
+                    const raw = business.logoUrl || business.logo || ''
+                    if (/^https?:\/\//i.test(raw)) return raw
                     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-                    if (cloudName && !logo.includes('/') && !logo.startsWith('.')) {
-                      return `https://res.cloudinary.com/${cloudName}/image/upload/c_fit,w_200,h_200,q_auto,f_auto/${logo}`
-                    }
-                    return logo || "/bank-branch.png"
+                    if (!cloudName) return "/bank-branch.png"
+                    // Support folder paths and strip extension
+                    const cleanId = String(raw).replace(/\.[^/.]+$/, '')
+                    return `https://res.cloudinary.com/${cloudName}/image/upload/c_fit,w_200,h_200,q_auto,f_auto/${cleanId}`
                   })()
                 : "/bank-branch.png"
             }
@@ -72,11 +73,13 @@ export default function BusinessListItem({ business }: Props) {
               </span>
             )}
             {business.address && (
-              <span className="line-clamp-1">{business.address}</span>
+              <span className="max-w-full sm:max-w-[420px] md:max-w-[560px] truncate">
+                {business.address}
+              </span>
             )}
           </div>
 
-          {business.description && (
+          {!compact && business.description && (
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
               {business.description}
             </p>
@@ -85,23 +88,29 @@ export default function BusinessListItem({ business }: Props) {
 
         {/* Actions */}
         <div className="flex sm:flex-col gap-2 sm:items-end items-start">
-          {business.phone && (
+          {!compact && business.phone && (
             <Button size="sm" variant="outline" asChild>
               <a href={`tel:${business.phone}`}>
                 <Phone className="h-4 w-4" />
               </a>
             </Button>
           )}
-          {business.email && (
+          {!compact && business.email && (
             <Button size="sm" variant="outline" asChild>
               <a href={`mailto:${business.email}`}>
                 <Mail className="h-4 w-4" />
               </a>
             </Button>
           )}
-          <Button size="sm" asChild>
-            <Link href={`/business/${business.slug || business.id}`}>View details</Link>
-          </Button>
+          {business.status && business.status !== "approved" ? (
+            <Button size="sm" variant="outline" disabled title="Awaiting admin approval">
+              Pending Approval
+            </Button>
+          ) : (
+            <Button size="sm" asChild>
+              <Link href={`/business/${business.slug || business.id}`}>View details</Link>
+            </Button>
+          )}
         </div>
       </div>
     </div>

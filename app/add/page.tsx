@@ -21,6 +21,7 @@ interface FormState {
   subCategory?: string
   province: string
   city: string
+  postalCode?: string
   address: string
   phone: string
   whatsapp?: string
@@ -120,6 +121,7 @@ export function AddBusinessForm({
     subCategory: "",
     province: "",
     city: "",
+    postalCode: "",
     address: "",
     phone: "",
     whatsapp: "",
@@ -278,6 +280,19 @@ export function AddBusinessForm({
     })
 
   const validate = () => {
+    const friendlyLabels: Record<string, { label: string; inputId: string }> = {
+      businessName: { label: "Business Name", inputId: "businessName" },
+      contactPersonName: { label: "Contact Person", inputId: "contactPersonName" },
+      category: { label: "Category", inputId: "category" },
+      province: { label: "Province", inputId: "province" },
+      city: { label: "City", inputId: "city" },
+      address: { label: "Complete Address", inputId: "address" },
+      phone: { label: "Phone Number", inputId: "phone" },
+      email: { label: "Email Address", inputId: "email" },
+      description: { label: "Business Description", inputId: "description" },
+      logo: { label: "Business Logo", inputId: "logo" },
+    }
+
     const required = [
       ["businessName", form.businessName],
       ["contactPersonName", form.contactPersonName],
@@ -290,14 +305,28 @@ export function AddBusinessForm({
       ["description", form.description],
     ] as const
 
-    const missing = required.filter(([, v]) => !v || String(v).trim() === "").map(([k]) => k)
-    if (missing.length) {
-      toast({ title: "Missing fields", description: missing.join(", "), variant: "destructive" })
-      return false
-    }
-    // Require logo similar to directory site
-    if (!form.logoFile) {
-      toast({ title: "Missing fields", description: "logoFile", variant: "destructive" })
+    const missingKeys = required.filter(([, v]) => !v || String(v).trim() === "").map(([k]) => k as string)
+    if (!form.logoFile) missingKeys.push("logo")
+
+    if (missingKeys.length) {
+      const friendlyList = missingKeys
+        .map((k) => friendlyLabels[k]?.label || k)
+        .join(", ")
+
+      toast({
+        title: "Please fill all required fields",
+        description: friendlyList,
+        variant: "destructive",
+      })
+
+      // Try to focus/scroll to first missing input
+      const firstKey = missingKeys[0]
+      const inputId = friendlyLabels[firstKey]?.inputId || firstKey
+      const el = document.getElementById(inputId)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        ;(el as HTMLElement).focus?.()
+      }
       return false
     }
     return true
@@ -316,6 +345,7 @@ export function AddBusinessForm({
       if (form.subCategory) fd.append("subCategory", form.subCategory)
       fd.append("province", form.province)
       fd.append("city", form.city)
+      if (form.postalCode) fd.append("postalCode", form.postalCode)
       fd.append("address", form.address)
       fd.append("phone", form.phone)
       fd.append("whatsapp", form.whatsapp || "")
@@ -342,6 +372,7 @@ export function AddBusinessForm({
           subCategory: "",
           province: "",
           city: "",
+          postalCode: "",
           address: "",
           phone: "",
           whatsapp: "",
@@ -360,7 +391,12 @@ export function AddBusinessForm({
         let message = "Please try again."
         try {
           const data = await res.json()
-          message = data?.error || JSON.stringify(data)
+          const details = Array.isArray(data?.details)
+            ? data.details
+                .map((d: any) => `${d?.path?.join?.('.') || d?.path || ''}: ${d?.message || d?.code || 'invalid'}`)
+                .join("; ")
+            : ""
+          message = [data?.error, details].filter(Boolean).join(" — ") || JSON.stringify(data)
         } catch (_) {
           try {
             message = await res.text()
@@ -525,6 +561,19 @@ export function AddBusinessForm({
                         </Command>
                       </PopoverContent>
                     </Popover>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="postalCode" className="text-gray-700 font-medium mb-2 block">Postal Code</Label>
+                    <div className="relative">
+                      <Input
+                        id="postalCode"
+                        placeholder="e.g. 54000"
+                        value={form.postalCode}
+                        onChange={handleChange}
+                        className="h-12 border-gray-300 focus:border-blue-500"
+                      />
+                    </div>
                   </div>
                   
                   <div>

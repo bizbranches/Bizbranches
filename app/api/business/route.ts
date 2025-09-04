@@ -9,23 +9,25 @@ export const runtime = "nodejs"
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME
 const buildCdnUrl = (publicId?: string | null) => {
   if (!publicId || !process.env.CLOUDINARY_CLOUD_NAME) return undefined
-  
+
   // If it's already a full URL, return as is
   if (publicId.startsWith('http')) return publicId
-  
-  // Handle Cloudinary public_id format (may include path or extension)
-  // Remove any Cloudinary URL prefix if present
+
+  // Normalize possible full Cloudinary-style path to extract the public_id including folders
+  // Example inputs we support:
+  // - my_folder/asset_name
+  // - my_folder/asset_name.png
+  // - https://res.cloudinary.com/<cloud>/image/upload/v123/my_folder/asset_name.png
   let cleanId = publicId
-    .replace(/^https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//, '') // Remove full URL prefix
-    .replace(/^.*\//, '') // Remove any path
-    .replace(/\.[^/.]+$/, '') // Remove file extension
-    
-  // If it looks like a Cloudinary public_id (no slashes, no dots except possibly at extension)
-  if (!cleanId.includes('/') && !cleanId.startsWith('.')) {
-    return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/c_fit,w_200,h_200,q_auto,f_auto/${cleanId}`
-  }
-  
-  return undefined
+    .replace(/^https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/v?\d+\//, '') // strip host + delivery + optional version
+    .replace(/^https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//, '') // strip host + delivery (no version)
+
+  // Remove file extension, Cloudinary works without it for transformation URLs
+  cleanId = cleanId.replace(/\.[^/.]+$/, '')
+
+  // Do not strip folder paths; keep them intact
+  // Generate a resized, auto-format URL
+  return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/c_fit,w_200,h_200,q_auto,f_auto/${cleanId}`
 }
 
 async function uploadToCloudinary(file: File): Promise<{ url: string; public_id: string } | null> {
@@ -41,13 +43,17 @@ async function uploadToCloudinary(file: File): Promise<{ url: string; public_id:
           transformation: [{ quality: "auto", fetch_format: "auto", width: 200, height: 200, crop: "fit" }],
         },
         (error, result) => {
-          if (error || !result) return reject(error)
+          if (error || !result) {
+            console.error("Cloudinary upload_stream error:", error)
+            return reject(error)
+          }
           resolve({ url: result.secure_url, public_id: result.public_id })
         },
       )
       stream.end(buffer)
     })
   } catch (e) {
+    console.error("uploadToCloudinary failed:", e)
     return null
   }
 
@@ -177,7 +183,13 @@ export async function GET(req: NextRequest) {
       filter.$or = [...(filter.$or || []), { subCategory: subCategoryParam }, { subCategory: subcatRegex }]
     }
     if (province) filter.province = province
-    if (city) filter.city = city
+    if (city) {
+      // Accept exact slug, case-insensitive name, and hyphen/space interchangeable variants
+      // e.g., 'rahim-yar-khan' should match 'Rahim Yar Khan'
+      const normalized = city.trim()
+      const cityRegex = new RegExp(`^${normalized.replace(/-/g, "[\\s-]")}$`, 'i')
+      filter.$or = [...(filter.$or || []), { city: normalized }, { city: cityRegex }]
+    }
     if (area) filter.area = area
     if (status) {
       if (status === 'all') {
@@ -213,6 +225,7 @@ export async function GET(req: NextRequest) {
       subCategory: 1,
       province: 1,
       city: 1,
+      postalCode: 1,
       area: 1,
       address: 1,
       description: 1,
@@ -226,6 +239,11 @@ export async function GET(req: NextRequest) {
       facebookUrl: 1,
       gmbUrl: 1,
       youtubeUrl: 1,
+      // Bank fields
+      swiftCode: 1,
+      branchCode: 1,
+      cityDialingCode: 1,
+      iban: 1,
       status: 1,
       createdAt: 1,
     } as const
@@ -284,6 +302,7 @@ export async function POST(req: Request) {
       subCategory: String(form.get("subCategory") || form.get("subcategory") || "").trim(),
       province: String(form.get("province") || "").trim(),
       city: String(form.get("city") || "").trim(),
+      postalCode: String(form.get("postalCode") || "").trim(),
       address: String(form.get("address") || "").trim(),
       phone: String(form.get("phone") || "").trim(),
       contactPerson: String(form.get("contactPerson") || "").trim() || "",
@@ -294,7 +313,23 @@ export async function POST(req: Request) {
       facebookUrl: String(form.get("facebookUrl") || "").trim(),
       gmbUrl: String(form.get("gmbUrl") || "").trim(),
       youtubeUrl: String(form.get("youtubeUrl") || "").trim(),
+      // Bank fields
+      swiftCode: String(form.get("swiftCode") || "").trim(),
+      branchCode: String(form.get("branchCode") || "").trim(),
+      cityDialingCode: String(form.get("cityDialingCode") || "").trim(),
+      iban: String(form.get("iban") || "").trim(),
     }
+
+    // Normalize URL fields: if provided without scheme, prepend https://
+    const ensureUrl = (val: string) => {
+      if (!val) return val
+      if (/^https?:\/\//i.test(val)) return val
+      return `https://${val}`
+    }
+    formData.websiteUrl = ensureUrl(formData.websiteUrl)
+    formData.facebookUrl = ensureUrl(formData.facebookUrl)
+    formData.gmbUrl = ensureUrl(formData.gmbUrl)
+    formData.youtubeUrl = ensureUrl(formData.youtubeUrl)
 
     console.log("Raw form data received:", formData)
     console.log("Form data keys:", Object.keys(formData))

@@ -1,6 +1,7 @@
 "use client"
 import BusinessListItem from "@/components/business-list-item"
 import { Button } from "@/components/ui/button"
+// Table view removed to keep listings compact without horizontal scroll
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cities } from "@/lib/mock-data"
 import { useState, useEffect } from "react"
@@ -23,6 +24,7 @@ export default function CategoryPage() {
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
     .join(" ")
   const category = { name: prettyName, icon: "📦", slug: categorySlug }
+  // Using a unified compact list for all categories, including bank
 
   // Fetch ALL businesses for this category (paginate through API)
   useEffect(() => {
@@ -125,7 +127,7 @@ export default function CategoryPage() {
             <div className="mb-8 divide-y divide-gray-100 border-y">
               {currentBusinesses.map((business) => (
                 <div key={business.id} className="py-4">
-                  <BusinessListItem business={business} />
+                  <BusinessListItem business={business} compact />
                 </div>
               ))}
             </div>
