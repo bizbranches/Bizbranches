@@ -53,20 +53,38 @@ export function AddBusinessForm({
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState(0)
   const DESCRIPTION_MAX = 500
+  const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
   
   // Local categories to support creating new ones on the fly
   const [localCategories, setLocalCategories] = useState<string[]>(categories)
   useEffect(() => setLocalCategories(categories), [categories])
   
-  // Fetch categories from API so newly added categories appear in dropdown
+  // Fetch categories from API (with session cache) so newly added categories appear in dropdown
   const fetchCategories = async () => {
+    const now = Date.now()
     try {
-      const res = await fetch("/api/categories", { cache: "no-store" })
+      // Try sessionStorage first
+      try {
+        const raw = sessionStorage.getItem("add:categories")
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed?.data) && typeof parsed?.ts === "number" && (now - parsed.ts) < CACHE_TTL_MS) {
+            setLocalCategories(parsed.data)
+            return
+          }
+        }
+      } catch {}
+
+      // Network as fallback (use cache where possible, API has ISR headers)
+      const res = await fetch("/api/categories?limit=60", { cache: "force-cache" })
       const data = await res.json().catch(() => ({}))
       const list: string[] = Array.isArray(data?.categories)
         ? data.categories.map((c: any) => c?.name || c?.slug).filter(Boolean)
         : []
-      if (list.length) setLocalCategories(list)
+      if (list.length) {
+        setLocalCategories(list)
+        try { sessionStorage.setItem("add:categories", JSON.stringify({ ts: now, data: list })) } catch {}
+      }
     } catch {
       // ignore
     }
@@ -208,14 +226,29 @@ export function AddBusinessForm({
     return Math.round((filledCount / requiredFields.length) * 100);
   }, [form]);
 
-  // Load provinces
+  // Load provinces (with session cache)
   useEffect(() => {
     const run = async () => {
       try {
         setProvLoading(true)
-        const res = await fetch("/api/provinces", { cache: "no-store" })
-        const data = await res.json()
-        setProvinces(Array.isArray(data) ? data : data?.provinces ?? [])
+        const now = Date.now()
+        let loaded: Array<{ id: string; name: string }> | null = null
+        try {
+          const raw = sessionStorage.getItem("add:provinces")
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (Array.isArray(parsed?.data) && typeof parsed?.ts === "number" && (now - parsed.ts) < CACHE_TTL_MS) {
+              loaded = parsed.data
+            }
+          }
+        } catch {}
+        if (!loaded) {
+          const res = await fetch("/api/provinces", { cache: "force-cache" })
+          const data = await res.json()
+          loaded = Array.isArray(data) ? data : data?.provinces ?? []
+          try { sessionStorage.setItem("add:provinces", JSON.stringify({ ts: now, data: loaded })) } catch {}
+        }
+        setProvinces(loaded ?? [])
       } catch (e) {
         setProvinces([])
       } finally {
@@ -225,29 +258,30 @@ export function AddBusinessForm({
     run()
   }, [])
 
-  // Load all cities initially (optional, for global searching)
-  useEffect(() => {
-    const run = async () => {
-      try {
-        setCityLoading(true)
-        const res = await fetch("/api/cities", { cache: "no-store" })
-        const data = await res.json()
-        setCityOptions(Array.isArray(data) ? data : data?.cities ?? [])
-      } catch (e) {
-        setCityOptions([])
-      } finally {
-        setCityLoading(false)
-      }
-    }
-    run()
-  }, [])
+  // Do not load all cities initially; fetch when a province is selected
 
   const fetchCitiesByProvince = async (provinceId: string) => {
     try {
       setCityLoading(true)
-      const res = await fetch(`/api/cities?provinceId=${encodeURIComponent(provinceId)}`, { cache: "no-store" })
-      const data = await res.json()
-      setCityOptions(Array.isArray(data) ? data : data?.cities ?? [])
+      const now = Date.now()
+      const cacheKey = `add:cities:${provinceId}`
+      let loaded: Array<{ id: string; name: string }> | null = null
+      try {
+        const raw = sessionStorage.getItem(cacheKey)
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed?.data) && typeof parsed?.ts === "number" && (now - parsed.ts) < CACHE_TTL_MS) {
+            loaded = parsed.data
+          }
+        }
+      } catch {}
+      if (!loaded) {
+        const res = await fetch(`/api/cities?provinceId=${encodeURIComponent(provinceId)}`, { cache: "force-cache" })
+        const data = await res.json()
+        loaded = Array.isArray(data) ? data : data?.cities ?? []
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: now, data: loaded })) } catch {}
+      }
+      setCityOptions(loaded ?? [])
     } catch (e) {
       setCityOptions([])
     } finally {

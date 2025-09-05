@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Phone, Mail, MapPin, MessageCircle, ArrowLeft, Star, Clock, Globe, Facebook, Youtube } from "lucide-react"
+import { Phone, Mail, MapPin, MessageCircle, ArrowLeft, Star, Clock, Globe, Facebook, Youtube, ArrowUpRight } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -224,7 +224,7 @@ export default function BusinessDetailPage() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-6">
           {/* City / Category / Subcategory breadcrumb moved here */}
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm">
             {(() => {
               const city = String(business.city || "")
               const category = String(business.category || "")
@@ -232,23 +232,29 @@ export default function BusinessDetailPage() {
               const catSlug = category.toLowerCase().replace(/\s+/g, "-")
               const subSlug = sub ? sub.toLowerCase().replace(/\s+/g, "-") : ""
               return (
-                <>
-                  <Link href={`/city/${city}`}>
-                    <span className="capitalize hover:underline">{city}</span>
-                  </Link>
-                  <span className="mx-1">/</span>
-                  <Link href={`/category/${catSlug}`}>
-                    <span className="capitalize hover:underline">{category.replace(/-/g, " ")}</span>
-                  </Link>
+                <div className="flex items-center gap-2">
+                  <Button asChild variant="outline" size="sm" className="h-7 rounded-full px-3 bg-red-100 text-red-700 hover:bg-red-200 border-transparent transition-colors">
+                    <Link href={`/city/${city}`}>
+                      <span className="capitalize">{city}</span>
+                    </Link>
+                  </Button>
+                  <span className="text-muted-foreground">&gt;</span>
+                  <Button asChild variant="outline" size="sm" className="h-7 rounded-full px-3 bg-red-100 text-red-700 hover:bg-red-200 border-transparent transition-colors">
+                    <Link href={`/category/${catSlug}`}>
+                      <span className="capitalize">{category.replace(/-/g, " ")}</span>
+                    </Link>
+                  </Button>
                   {sub && (
                     <>
-                      <span className="mx-1">/</span>
-                      <Link href={`/category/${catSlug}?subcategory=${encodeURIComponent(subSlug)}`}>
-                        <span className="capitalize hover:underline">{sub.replace(/-/g, " ")}</span>
-                      </Link>
+                      <span className="text-muted-foreground">&gt;</span>
+                      <Button asChild variant="outline" size="sm" className="h-7 rounded-full px-3 bg-red-100 text-red-700 hover:bg-red-200 border-transparent transition-colors">
+                        <Link href={`/category/${catSlug}?subcategory=${encodeURIComponent(subSlug)}`}>
+                          <span className="capitalize">{sub.replace(/-/g, " ")}</span>
+                        </Link>
+                      </Button>
                     </>
                   )}
-                </>
+                </div>
               )
             })()}
           </div>
@@ -335,10 +341,20 @@ export default function BusinessDetailPage() {
                           </div>
                         )}
                         {business.iban && (
-                          <div className="p-4 rounded-lg border bg-muted/50">
-                            <div className="text-sm text-muted-foreground">IBAN</div>
-                            <div className="font-medium text-foreground break-all">{business.iban}</div>
-                          </div>
+                          <a
+                            href={(String(business.iban).startsWith("http://") || String(business.iban).startsWith("https://")) ? String(business.iban) : `https://${business.iban}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group block p-4 rounded-lg border bg-muted/50 hover:bg-muted transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-sm text-muted-foreground">IBAN</div>
+                                <div className="font-medium text-foreground break-all underline">{business.iban}</div>
+                              </div>
+                              <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                            </div>
+                          </a>
                         )}
                       </div>
                     </div>
@@ -408,6 +424,11 @@ export default function BusinessDetailPage() {
                             <div>
                               <p className="font-semibold text-foreground">Phone</p>
                               <p className="text-sm text-muted-foreground">{business.phone}</p>
+                              {(business.contactPerson || (business as any).contactPersonName) && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Contact: {business.contactPerson || (business as any).contactPersonName}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <Button size="sm" className="bg-primary hover:bg-primary/90" asChild>

@@ -48,6 +48,8 @@ const DEFAULT_SUBCATEGORIES: Record<string, Array<{ name: string; slug: string }
 }
 
 export const runtime = "nodejs"
+// Cache this route for 1 hour with ISR semantics
+export const revalidate = 3600
 
 // GET /api/categories?q=rest
 export async function GET(req: NextRequest) {
@@ -56,19 +58,25 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get("q")?.trim() || ""
     const slug = searchParams.get("slug")?.trim() || ""
     const limit = parseInt(searchParams.get("limit") || "10")
+    const safeLimit = Math.min(Math.max(limit, 1), 60)
 
     const models = await getModels()
 
     // If a specific category is requested by slug, return it (with subcategories if present or defaulted)
     if (slug) {
-      const category = await models.categories.findOne({ slug, isActive: { $ne: false } })
+      const category = await models.categories.findOne(
+        { slug, isActive: { $ne: false } },
+        { projection: { _id: 0, name: 1, slug: 1, count: 1, imageUrl: 1, icon: 1, subcategories: 1 } }
+      )
       if (!category) {
         return NextResponse.json({ ok: false, error: "Category not found" }, { status: 404 })
       }
       if (!Array.isArray((category as any).subcategories) || (category as any).subcategories.length === 0) {
         ;(category as any).subcategories = DEFAULT_SUBCATEGORIES[category.slug] || []
       }
-      return NextResponse.json({ ok: true, category })
+      const res = NextResponse.json({ ok: true, category })
+      res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400")
+      return res
     }
 
     // Otherwise, return a list of categories (optionally filtered by q)
@@ -79,9 +87,9 @@ export async function GET(req: NextRequest) {
     }
 
     const categories = await models.categories
-      .find(filter)
+      .find(filter, { projection: { _id: 0, name: 1, slug: 1, count: 1, imageUrl: 1, icon: 1, subcategories: 1 } })
       .sort({ count: -1, name: 1 })
-      .limit(limit)
+      .limit(safeLimit)
       .toArray()
 
     // Apply default subcategories if missing
@@ -92,7 +100,9 @@ export async function GET(req: NextRequest) {
       return c
     })
 
-    return NextResponse.json({ ok: true, categories: enriched })
+    const res = NextResponse.json({ ok: true, categories: enriched })
+    res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400")
+    return res
   } catch (error) {
     console.error("Error fetching categories:", error)
     return NextResponse.json({ ok: false, error: "Failed to fetch businesses" }, { status: 500 })

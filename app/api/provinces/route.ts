@@ -10,5 +10,8 @@ export async function GET() {
     { id: "GB", name: "Gilgit Baltistan" },
     { id: "AJK", name: "Azad Jammu & Kashmir" },
   ]
-  return NextResponse.json(provinces)
+  const res = NextResponse.json(provinces)
+  // cache for 1 day, allow week-long stale-while-revalidate
+  res.headers.set("Cache-Control", "s-maxage=86400, stale-while-revalidate=604800")
+  return res
 }

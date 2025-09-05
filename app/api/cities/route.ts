@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(_req: NextRequest) {
   const base = process.env.LEOPARDS_API_BASE_URL
@@ -36,7 +36,10 @@ export async function GET(_req: NextRequest) {
       name: c?.name ?? c?.CityName ?? c?.city_name ?? String(c?.id ?? c?.CityId ?? c?.city_id ?? c?.code ?? ""),
     }))
 
-    return Response.json({ ok: true, cities })
+    const out = NextResponse.json({ ok: true, cities })
+    // Cache for 1 day on CDN; allow a week stale-while-revalidate.
+    out.headers.set("Cache-Control", "s-maxage=86400, stale-while-revalidate=604800")
+    return out
   } catch (err: any) {
     return Response.json({ ok: false, error: err?.message || "Failed to fetch cities" })
   }
