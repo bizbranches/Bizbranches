@@ -1,3 +1,13 @@
+// Helper to derive a slug from a display name when DB slug is missing
+const toSlug = (s: string = "") =>
+  s
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+
 import { NextRequest, NextResponse } from "next/server"
 import { getModels } from "@/lib/models"
 
@@ -58,7 +68,8 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get("q")?.trim() || ""
     const slug = searchParams.get("slug")?.trim() || ""
     const limit = parseInt(searchParams.get("limit") || "10")
-    const safeLimit = Math.min(Math.max(limit, 1), 60)
+    const safeLimit = Math.min(Math.max(limit, 1), 200)
+    const noCache = searchParams.get("nocache") === "1"
 
     const models = await getModels()
 
@@ -71,11 +82,19 @@ export async function GET(req: NextRequest) {
       if (!category) {
         return NextResponse.json({ ok: false, error: "Category not found" }, { status: 404 })
       }
+      // Ensure slug exists
+      if (!category.slug && category.name) {
+        ;(category as any).slug = toSlug(category.name)
+      }
       if (!Array.isArray((category as any).subcategories) || (category as any).subcategories.length === 0) {
         ;(category as any).subcategories = DEFAULT_SUBCATEGORIES[category.slug] || []
       }
       const res = NextResponse.json({ ok: true, category })
-      res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400")
+      if (noCache) {
+        res.headers.set("Cache-Control", "no-store, must-revalidate")
+      } else {
+        res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400")
+      }
       return res
     }
 
@@ -94,6 +113,8 @@ export async function GET(req: NextRequest) {
 
     // Apply default subcategories if missing
     const enriched = categories.map((c: any) => {
+      // Ensure slug exists for each category
+      if (!c.slug && c.name) c.slug = toSlug(c.name)
       if (!Array.isArray(c.subcategories) || c.subcategories.length === 0) {
         c.subcategories = DEFAULT_SUBCATEGORIES[c.slug] || []
       }
@@ -101,7 +122,11 @@ export async function GET(req: NextRequest) {
     })
 
     const res = NextResponse.json({ ok: true, categories: enriched })
-    res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400")
+    if (noCache) {
+      res.headers.set("Cache-Control", "no-store, must-revalidate")
+    } else {
+      res.headers.set("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400")
+    }
     return res
   } catch (error) {
     console.error("Error fetching categories:", error)

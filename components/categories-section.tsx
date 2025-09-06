@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
-import { categories as mockCategories } from "@/lib/mock-data"
 
 type Category = { name: string; slug: string; count?: number; icon?: string; image?: string }
 
@@ -42,16 +41,19 @@ const fallbackIcon: Record<string, string> = {
 }
 
 export function CategoriesSection() {
-  const [showAll, setShowAll] = useState(false)
+  const [showAll, setShowAll] = useState(true)
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
 
   useEffect(() => {
     let active = true
     ;(async () => {
       try {
+        setError(null)
         // Try sessionStorage cache first
         const now = Date.now()
         let cached: any | null = null
@@ -68,53 +70,35 @@ export function CategoriesSection() {
         let data: any = null
         if (cached) {
           data = { ok: true, categories: cached }
-        } else {
-          // Smaller initial fetch for faster First Contentful Paint
-          const res = await fetch(`/api/categories?limit=12`, { cache: "force-cache" })
-          data = await res.json()
-          // Save to session cache
+        }
+        // Always fetch a full fresh list for accuracy
+        const fres = await fetch(`/api/categories?limit=200&nocache=1`, { cache: "no-store" })
+        const fdata = await fres.json().catch(() => ({}))
+        if (fdata?.ok && Array.isArray(fdata.categories)) {
+          data = fdata
           try {
-            if (data?.ok && Array.isArray(data.categories)) {
-              sessionStorage.setItem("categories_initial", JSON.stringify({ ts: now, data: data.categories }))
-            }
+            sessionStorage.setItem("categories_initial", JSON.stringify({ ts: now, data: fdata.categories }))
           } catch {}
         }
         if (active) {
           if (data?.ok && Array.isArray(data.categories) && data.categories.length > 0) {
-            setCategories(
-              data.categories.map((c: any) => ({
-                name: c.name || c.slug,
-                slug: c.slug,
-                count: typeof c.count === "number" ? c.count : undefined,
-                image: c.imageUrl || categoryImages[c.slug],
-                icon: c.icon || fallbackIcon[c.slug] || "📦",
-              })),
-            )
-          } else {
-            // Fallback to mock categories when API returns empty
-            setCategories(
-              mockCategories.map((c: any) => ({
-                name: c.name,
-                slug: c.slug,
-                count: typeof c.count === "number" ? c.count : undefined,
-                image: categoryImages[c.slug],
-                icon: c.icon || fallbackIcon[c.slug] || "📦",
-              })),
-            )
-          }
-        }
-      } catch {
-        // On error, fallback to mock categories
-        if (active) {
-          setCategories(
-            mockCategories.map((c: any) => ({
-              name: c.name,
+            const mapped = data.categories.map((c: any) => ({
+              name: c.name || c.slug,
               slug: c.slug,
               count: typeof c.count === "number" ? c.count : undefined,
-              image: categoryImages[c.slug],
+              image: c.imageUrl || categoryImages[c.slug],
               icon: c.icon || fallbackIcon[c.slug] || "📦",
-            })),
-          )
+            }))
+            setCategories(mapped)
+          } else {
+            // No categories returned; leave list empty
+            setCategories([])
+          }
+        }
+      } catch (e: any) {
+        if (active) {
+          setError(e?.message || "Failed to load categories")
+          setCategories([])
         }
       } finally {
         if (active) setLoading(false)
@@ -123,7 +107,7 @@ export function CategoriesSection() {
     return () => {
       active = false
     }
-  }, [])
+  }, [reloadKey])
 
   // When user expands, lazily fetch more categories once
   useEffect(() => {
@@ -133,27 +117,14 @@ export function CategoriesSection() {
         try {
           setLoadingMore(true)
           const now = Date.now()
-          // Try cached expanded list
-          let data: any = null
+          // Always fetch fresh when expanding to ensure latest from admin panel
+          const res = await fetch(`/api/categories?limit=200&nocache=1`, { cache: "no-store" })
+          const data = await res.json()
           try {
-            const raw = sessionStorage.getItem("categories_all")
-            if (raw) {
-              const parsed = JSON.parse(raw)
-              if (parsed && Array.isArray(parsed.data) && typeof parsed.ts === "number" && (now - parsed.ts) < CACHE_TTL_MS) {
-                data = { ok: true, categories: parsed.data }
-              }
+            if (data?.ok && Array.isArray(data.categories)) {
+              sessionStorage.setItem("categories_all", JSON.stringify({ ts: now, data: data.categories }))
             }
           } catch {}
-
-          if (!data) {
-            const res = await fetch(`/api/categories?limit=60`, { cache: "force-cache" })
-            data = await res.json()
-            try {
-              if (data?.ok && Array.isArray(data.categories)) {
-                sessionStorage.setItem("categories_all", JSON.stringify({ ts: now, data: data.categories }))
-              }
-            } catch {}
-          }
           if (active && data?.ok && Array.isArray(data.categories)) {
             setCategories(
               data.categories.map((c: any) => ({
@@ -188,6 +159,13 @@ export function CategoriesSection() {
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Explore businesses across different categories and find exactly what you're looking for.
           </p>
+          {/* Empty / error state (no hardcoded categories) */}
+          {!loading && categories.length === 0 && (
+            <div className="text-center mt-8">
+              <p className="text-sm text-muted-foreground mb-4">{error ? "Failed to load categories." : "No categories available."}</p>
+              <Button variant="outline" onClick={() => { setLoading(true); setReloadKey((k) => k + 1) }}>Retry</Button>
+            </div>
+          )}
         </div>
 
         <div className="w-[90%] mx-auto">

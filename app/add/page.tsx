@@ -52,7 +52,7 @@ export function AddBusinessForm({
   const [submitted, setSubmitted] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState(0)
-  const DESCRIPTION_MAX = 500
+  const DESCRIPTION_MAX = 1000
   const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
   
   // Local categories to support creating new ones on the fly
@@ -63,27 +63,35 @@ export function AddBusinessForm({
   const fetchCategories = async () => {
     const now = Date.now()
     try {
-      // Try sessionStorage first
+      // Try sessionStorage first (but do NOT return early; we'll refresh in background)
       try {
         const raw = sessionStorage.getItem("add:categories")
         if (raw) {
           const parsed = JSON.parse(raw)
           if (Array.isArray(parsed?.data) && typeof parsed?.ts === "number" && (now - parsed.ts) < CACHE_TTL_MS) {
             setLocalCategories(parsed.data)
-            return
           }
         }
       } catch {}
 
-      // Network as fallback (use cache where possible, API has ISR headers)
-      const res = await fetch("/api/categories?limit=60", { cache: "force-cache" })
+      // Network as fallback (fetch fresh to include latest admin categories)
+      const res = await fetch("/api/categories?limit=200&nocache=1", { cache: "no-store" })
       const data = await res.json().catch(() => ({}))
       const list: string[] = Array.isArray(data?.categories)
         ? data.categories.map((c: any) => c?.name || c?.slug).filter(Boolean)
         : []
       if (list.length) {
-        setLocalCategories(list)
-        try { sessionStorage.setItem("add:categories", JSON.stringify({ ts: now, data: list })) } catch {}
+        setLocalCategories((prev) => {
+          const prevSet = new Set(prev)
+          const newSet = new Set(list)
+          let differs = prevSet.size !== newSet.size
+          if (!differs) { for (const s of newSet) { if (!prevSet.has(s)) { differs = true; break } } }
+          if (differs) {
+            try { sessionStorage.setItem("add:categories", JSON.stringify({ ts: now, data: list })) } catch {}
+            return list
+          }
+          return prev
+        })
       }
     } catch {
       // ignore
@@ -784,12 +792,12 @@ export function AddBusinessForm({
                         <Input 
                           id="logo" 
                           type="file" 
-                          accept="image/png,image/jpeg,image/svg+xml" 
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml" 
                           onChange={handleFile} 
                           className="h-12 border-gray-300 focus:border-blue-500 opacity-0 z-10" 
                         />
                         <div className="absolute inset-0 flex items-center px-3 pointer-events-none border border-gray-300 rounded-md bg-gray-50">
-                          <span className="text-gray-500 ml-8">Upload JPG, PNG, or SVG. Max ~2.5MB.</span>
+                          <span className="text-gray-500 ml-8">Upload JPG, PNG, WebP, or SVG. Max ~2.5MB.</span>
                         </div>
                       </div>
                       {logoPreview && (

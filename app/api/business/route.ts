@@ -261,16 +261,27 @@ export async function GET(req: NextRequest) {
     // Lightweight log
     console.log(`Found ${businesses.length} businesses, total: ${total}`)
 
-    // Add id field for each business
-    const businessesWithId = businesses.map(business => ({
-      ...business,
-      // If logoUrl missing but public id or 'logo' public_id is present, derive a CDN URL
-      logoUrl:
-        (business as any).logoUrl ||
-        buildCdnUrl((business as any).logoPublicId) ||
-        (/^https?:\/\//i.test((business as any).logo || '') ? undefined : buildCdnUrl((business as any).logo)),
-      id: (business as any)._id?.toString?.() || business._id.toString(),
-    }))
+    // Add id field for each business, skip malformed docs instead of failing whole response
+    let skipped = 0
+    const businessesWithId = businesses.reduce((acc: any[], b: any) => {
+      try {
+        const rawId = b?._id
+        const safeId = rawId ? String(rawId) : (b?.slug || b?.id || "")
+        acc.push({
+          ...b,
+          // If logoUrl missing but public id or 'logo' public_id is present, derive a CDN URL
+          logoUrl:
+            b?.logoUrl ||
+            buildCdnUrl(b?.logoPublicId) ||
+            (/^https?:\/\//i.test(b?.logo || '') ? undefined : buildCdnUrl(b?.logo)),
+          id: safeId,
+        })
+      } catch (e: any) {
+        skipped += 1
+        console.warn('Skipping malformed business document', { message: e?.message, doc: b })
+      }
+      return acc
+    }, [])
 
     return NextResponse.json({
       ok: true,
@@ -280,10 +291,14 @@ export async function GET(req: NextRequest) {
         limit,
         total,
         pages: Math.ceil(total / limit)
-      }
+      },
+      skipped
     })
-  } catch (error) {
-    console.error('Error fetching businesses:', error)
+  } catch (error: any) {
+    console.error('Error fetching businesses:', {
+      message: error?.message,
+      stack: error?.stack,
+    })
     return NextResponse.json(
       { ok: false, error: 'Failed to fetch businesses' },
       { status: 500 }

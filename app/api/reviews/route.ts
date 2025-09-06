@@ -27,7 +27,9 @@ export async function GET(req: NextRequest) {
     const ratingAvg = agg[0]?.avg ?? 0
     const ratingCount = agg[0]?.count ?? 0
 
-    return NextResponse.json({ ok: true, reviews, ratingAvg, ratingCount })
+    const res = NextResponse.json({ ok: true, reviews, ratingAvg, ratingCount })
+    res.headers.set("Cache-Control", "no-store, must-revalidate")
+    return res
   } catch (err) {
     console.error("GET /api/reviews error", err)
     return NextResponse.json({ ok: false, error: "Internal Server Error" }, { status: 500 })

@@ -15,9 +15,12 @@ export default function CategoryPage() {
   const [businesses, setBusinesses] = useState<any[]>([])
   const [filteredBusinesses, setFilteredBusinesses] = useState<any[]>([])
   const [selectedCity, setSelectedCity] = useState("all")
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(1) // client-side page for UI pagination (local slice)
   const [loading, setLoading] = useState(true)
-  const businessesPerPage = 12
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [apiPage, setApiPage] = useState(1)
+  const [apiTotalPages, setApiTotalPages] = useState(1)
+  const PAGE_SIZE = 12
 
   const prettyName = categorySlug
     .split("-")
@@ -26,40 +29,48 @@ export default function CategoryPage() {
   const category = { name: prettyName, icon: "📦", slug: categorySlug }
   // Using a unified compact list for all categories, including bank
 
-  // Fetch ALL businesses for this category (paginate through API)
+  // Fetch only first page initially; fetch more on demand
   useEffect(() => {
-    const fetchAllBusinesses = async () => {
+    let active = true
+    const fetchPage = async (page: number) => {
       try {
         setLoading(true)
-        const PAGE_SIZE = 50
-        // First page
-        const first = await fetch(`/api/business?category=${categorySlug}&page=1&limit=${PAGE_SIZE}`)
-        if (!first.ok) throw new Error("Failed to fetch businesses")
-        const firstData = await first.json()
-        let all: any[] = firstData.businesses || []
-        const totalPages: number = firstData?.pagination?.pages || 1
-
-        // Fetch remaining pages in sequence to avoid overloading server
-        for (let p = 2; p <= totalPages; p++) {
-          const res = await fetch(`/api/business?category=${categorySlug}&page=${p}&limit=${PAGE_SIZE}`)
-          if (!res.ok) break
-          const data = await res.json()
-          all = all.concat(data.businesses || [])
-        }
-
-        setBusinesses(all)
+        const res = await fetch(`/api/business?category=${categorySlug}&page=${page}&limit=${PAGE_SIZE}`)
+        if (!res.ok) throw new Error("Failed to fetch businesses")
+        const data = await res.json()
+        if (!active) return
+        setBusinesses(data.businesses || [])
+        setApiPage(page)
+        setApiTotalPages(data?.pagination?.pages || 1)
       } catch (error) {
         console.error("Error fetching businesses:", error)
-        setBusinesses([])
+        if (active) setBusinesses([])
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
-
-    if (categorySlug) {
-      fetchAllBusinesses()
-    }
+    if (categorySlug) fetchPage(1)
+    return () => { active = false }
   }, [categorySlug])
+
+  const loadMore = async () => {
+    if (loadingMore) return
+    const next = apiPage + 1
+    if (next > apiTotalPages) return
+    setLoadingMore(true)
+    try {
+      const res = await fetch(`/api/business?category=${categorySlug}&page=${next}&limit=${PAGE_SIZE}`)
+      if (!res.ok) throw new Error("Failed to fetch more")
+      const data = await res.json()
+      setBusinesses((prev) => prev.concat(data.businesses || []))
+      setApiPage(next)
+      setApiTotalPages(data?.pagination?.pages || apiTotalPages)
+    } catch (e) {
+      console.error("Load more failed", e)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
     let filtered = businesses
@@ -73,10 +84,10 @@ export default function CategoryPage() {
     setCurrentPage(1)
   }, [businesses, selectedCity])
 
-  // Pagination
-  const totalPages = Math.ceil(filteredBusinesses.length / businessesPerPage)
-  const startIndex = (currentPage - 1) * businessesPerPage
-  const currentBusinesses = filteredBusinesses.slice(startIndex, startIndex + businessesPerPage)
+  // Pagination (client-side slice over currently loaded items)
+  const totalPages = Math.ceil(filteredBusinesses.length / PAGE_SIZE)
+  const startIndex = (currentPage - 1) * PAGE_SIZE
+  const currentBusinesses = filteredBusinesses.slice(startIndex, startIndex + PAGE_SIZE)
 
   // Always render; rely on API results for content. If none found, we show the existing empty state.
 
@@ -132,27 +143,11 @@ export default function CategoryPage() {
               ))}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-
-                <span className="text-muted-foreground">
-                  Page {currentPage} of {totalPages}
-                </span>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
+            {/* Load more (server pagination) */}
+            {apiPage < apiTotalPages && (
+              <div className="flex justify-center items-center mt-6">
+                <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
+                  {loadingMore ? "Loading…" : "Load more"}
                 </Button>
               </div>
             )}

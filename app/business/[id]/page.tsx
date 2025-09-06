@@ -1,15 +1,16 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Phone, Mail, MapPin, MessageCircle, ArrowLeft, Star, Clock, Globe, Facebook, Youtube, ArrowUpRight } from "lucide-react"
 import { useParams } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 
 export default function BusinessDetailPage() {
   const params = useParams()
@@ -19,6 +20,7 @@ export default function BusinessDetailPage() {
   const [reviews, setReviews] = useState<any[]>([])
   const [ratingAvg, setRatingAvg] = useState<number>(0)
   const [ratingCount, setRatingCount] = useState<number>(0)
+  const reviewsRef = useRef<HTMLDivElement | null>(null)
 
   // Review dialog state
   const [openReview, setOpenReview] = useState(false)
@@ -29,6 +31,7 @@ export default function BusinessDetailPage() {
   // Related businesses (same category)
   const [related, setRelated] = useState<any[]>([])
   const [rotateIndex, setRotateIndex] = useState(0)
+  const { toast } = useToast()
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -80,27 +83,30 @@ export default function BusinessDetailPage() {
   }, [related])
 
   // Fetch reviews
-  useEffect(() => {
-    const fetchReviews = async () => {
-      if (!businessId) return
-      try {
-        const res = await fetch(`/api/reviews?businessId=${businessId}`)
-        if (res.ok) {
-          const data = await res.json()
-          setReviews(data.reviews || [])
-          setRatingAvg(data.ratingAvg || 0)
-          setRatingCount(data.ratingCount || 0)
-        }
-      } catch (e) {
-        console.error("Error fetching reviews", e)
+  const fetchReviewsNow = async () => {
+    if (!businessId) return
+    try {
+      const res = await fetch(`/api/reviews?businessId=${businessId}`, { cache: "no-store" })
+      if (res.ok) {
+        const data = await res.json()
+        setReviews(data.reviews || [])
+        setRatingAvg(data.ratingAvg || 0)
+        setRatingCount(data.ratingCount || 0)
       }
+    } catch (e) {
+      console.error("Error fetching reviews", e)
     }
-    fetchReviews()
+  }
+
+  useEffect(() => {
+    fetchReviewsNow()
   }, [businessId])
 
   const submitReview = async () => {
     try {
       setSubmitting(true)
+      // Close modal immediately for better UX
+      setOpenReview(false)
       const payload = {
         businessId,
         name: reviewerName.trim() || "Anonymous",
@@ -114,17 +120,31 @@ export default function BusinessDetailPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        // Optimistically update
+        // Optimistically update for instant feedback
         setReviews(prev => [{ ...payload, createdAt: new Date() }, ...prev])
         setRatingAvg(data.ratingAvg || 0)
         setRatingCount(data.ratingCount || 0)
-        setOpenReview(false)
         setReviewerName("")
         setReviewRating(5)
         setReviewComment("")
+        // Re-fetch to ensure we have canonical data from DB (do not block closing)
+        fetchReviewsNow().then(() => {
+          // Scroll to reviews section after refresh
+          try { reviewsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }) } catch {}
+          // Log success for debugging
+          console.info("Review submitted and list refreshed.")
+        })
+        toast({ title: "Review submitted", description: "Thanks for your feedback!" })
+      } else {
+        // Keep dialog closed; show error toast
+        let message = "Failed to submit review"
+        try { message = await res.text() } catch {}
+        toast({ title: `Error (${res.status})`, description: message, variant: "destructive" })
       }
     } catch (e) {
       console.error("Error submitting review", e)
+      // Keep dialog closed; show error toast
+      toast({ title: "Network error", description: "Please check your connection and try again.", variant: "destructive" })
     } finally {
       setSubmitting(false)
     }
@@ -296,7 +316,9 @@ export default function BusinessDetailPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpenReview(false)} disabled={submitting}>Cancel</Button>
-                <Button onClick={submitReview} disabled={submitting || reviewComment.trim().length < 3}>Submit</Button>
+                <DialogClose asChild>
+                  <Button onClick={submitReview} disabled={submitting || reviewComment.trim().length < 3}>Submit</Button>
+                </DialogClose>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -307,8 +329,8 @@ export default function BusinessDetailPage() {
             <Card className="shadow-lg border-primary/10">
               <CardContent className="p-8">
                 <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">About {business.name}</h2>
-                <div className="prose prose-sm md:prose-base max-w-none text-foreground">
-                  <p className="leading-relaxed text-balance">
+                <div className="prose prose-sm md:prose-base max-w-none text-foreground overflow-visible">
+                  <p className="leading-relaxed whitespace-pre-line break-words">
                     {business.description || "No description provided yet."}
                   </p>
                 </div>
@@ -321,7 +343,7 @@ export default function BusinessDetailPage() {
                   return (
                     <div className="mt-6">
                       <h3 className="text-xl font-semibold text-foreground mb-4">Bank Details</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {business.swiftCode && (
                           <div className="p-4 rounded-lg border bg-muted/50">
                             <div className="text-sm text-muted-foreground">Swift Code</div>
@@ -345,14 +367,14 @@ export default function BusinessDetailPage() {
                             href={(String(business.iban).startsWith("http://") || String(business.iban).startsWith("https://")) ? String(business.iban) : `https://${business.iban}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="group block p-4 rounded-lg border bg-muted/50 hover:bg-muted transition-colors"
+                            className="group block p-4 rounded-lg border bg-muted/50 hover:bg-muted transition-colors md:col-span-3"
                           >
-                            <div className="flex items-center justify-between">
-                              <div>
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0 flex-1 overflow-x-auto">
                                 <div className="text-sm text-muted-foreground">IBAN</div>
-                                <div className="font-medium text-foreground break-all underline">{business.iban}</div>
+                                <div className="font-medium text-foreground underline whitespace-nowrap">{business.iban}</div>
                               </div>
-                              <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                              <ArrowUpRight className="h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                             </div>
                           </a>
                         )}
@@ -416,14 +438,14 @@ export default function BusinessDetailPage() {
                   <div className="space-y-4">
                     {business.phone && (
                       <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="p-2 bg-primary/20 rounded-lg mr-3">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 bg-primary/20 rounded-lg">
                               <Phone className="h-5 w-5 text-primary" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-semibold text-foreground">Phone</p>
-                              <p className="text-sm text-muted-foreground">{business.phone}</p>
+                              <p className="text-sm text-muted-foreground truncate">{business.phone}</p>
                               {(business.contactPerson || (business as any).contactPersonName) && (
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                   Contact: {business.contactPerson || (business as any).contactPersonName}
@@ -431,7 +453,7 @@ export default function BusinessDetailPage() {
                               )}
                             </div>
                           </div>
-                          <Button size="sm" className="bg-primary hover:bg-primary/90" asChild>
+                          <Button size="sm" className="bg-primary hover:bg-primary/90 justify-self-end" asChild>
                             <a href={`tel:${business.phone}`}>Call</a>
                           </Button>
                         </div>
@@ -440,17 +462,17 @@ export default function BusinessDetailPage() {
 
                     {business.websiteUrl && (
                       <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="p-2 bg-slate-200 rounded-lg mr-3">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 bg-slate-200 rounded-lg">
                               <Globe className="h-5 w-5 text-slate-700" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-semibold text-foreground">Website</p>
                               <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.websiteUrl}</p>
                             </div>
                           </div>
-                          <Button size="sm" variant="outline" asChild>
+                          <Button size="sm" variant="outline" className="justify-self-end" asChild>
                             <a href={business.websiteUrl} target="_blank" rel="noopener noreferrer">Visit</a>
                           </Button>
                         </div>
@@ -459,17 +481,17 @@ export default function BusinessDetailPage() {
 
                     {business.facebookUrl && (
                       <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="p-2 bg-blue-200 rounded-lg mr-3">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 bg-blue-200 rounded-lg">
                               <Facebook className="h-5 w-5 text-blue-700" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-semibold text-foreground">Facebook</p>
                               <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.facebookUrl}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" asChild>
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white justify-self-end" asChild>
                             <a href={business.facebookUrl} target="_blank" rel="noopener noreferrer">Open</a>
                           </Button>
                         </div>
@@ -478,17 +500,17 @@ export default function BusinessDetailPage() {
 
                     {business.gmbUrl && (
                       <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="p-2 bg-emerald-200 rounded-lg mr-3">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 bg-emerald-200 rounded-lg">
                               <MapPin className="h-5 w-5 text-emerald-700" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-semibold text-foreground">Google Business</p>
                               <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.gmbUrl}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" asChild>
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white justify-self-end" asChild>
                             <a href={business.gmbUrl} target="_blank" rel="noopener noreferrer">Open</a>
                           </Button>
                         </div>
@@ -497,17 +519,17 @@ export default function BusinessDetailPage() {
 
                     {business.youtubeUrl && (
                       <div className="p-4 bg-gradient-to-r from-rose-50 to-rose-100 rounded-xl border border-rose-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="p-2 bg-rose-200 rounded-lg mr-3">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 bg-rose-200 rounded-lg">
                               <Youtube className="h-5 w-5 text-rose-700" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-semibold text-foreground">YouTube</p>
                               <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.youtubeUrl}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white" asChild>
+                          <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white justify-self-end" asChild>
                             <a href={business.youtubeUrl} target="_blank" rel="noopener noreferrer">Open</a>
                           </Button>
                         </div>
@@ -516,17 +538,17 @@ export default function BusinessDetailPage() {
 
                     {business.whatsapp && (
                       <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="p-2 bg-green-200 rounded-lg mr-3">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 bg-green-200 rounded-lg">
                               <MessageCircle className="h-5 w-5 text-green-700" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-semibold text-foreground">WhatsApp</p>
                               <p className="text-sm text-muted-foreground">{business.whatsapp}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" asChild>
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white justify-self-end" asChild>
                             <a
                               href={`https://wa.me/${business.whatsapp.replace(/[^0-9]/g, "")}`}
                               target="_blank"
@@ -541,17 +563,17 @@ export default function BusinessDetailPage() {
 
                     {business.email && (
                       <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="p-2 bg-blue-200 rounded-lg mr-3">
+                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 bg-blue-200 rounded-lg">
                               <Mail className="h-5 w-5 text-blue-700" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-semibold text-foreground">Email</p>
                               <p className="text-sm text-muted-foreground">{business.email}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" asChild>
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white justify-self-end" asChild>
                             <a href={`mailto:${business.email}`}>Email</a>
                           </Button>
                         </div>
@@ -626,7 +648,7 @@ export default function BusinessDetailPage() {
         </div>
 
         {/* Reviews Section - match left column width, leave right empty */}
-        <section className="mt-12">
+        <section className="mt-12" ref={reviewsRef}>
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
             <div className="xl:col-span-2">
               <Card className="shadow-lg border-primary/10">
