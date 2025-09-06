@@ -438,7 +438,7 @@ export default function BusinessDetailPage() {
                   <div className="space-y-4">
                     {business.phone && (
                       <div className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                        <div className="grid grid-cols-[1fr_auto] items-start gap-4">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="p-2 bg-primary/20 rounded-lg">
                               <Phone className="h-5 w-5 text-primary" />
@@ -453,7 +453,7 @@ export default function BusinessDetailPage() {
                               )}
                             </div>
                           </div>
-                          <Button size="sm" className="bg-primary hover:bg-primary/90 justify-self-end" asChild>
+                          <Button size="sm" className="bg-primary hover:bg-primary/90 justify-self-end w-24 h-8 px-3 text-sm" asChild>
                             <a href={`tel:${business.phone}`}>Call</a>
                           </Button>
                         </div>
@@ -462,7 +462,7 @@ export default function BusinessDetailPage() {
 
                     {business.websiteUrl && (
                       <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                        <div className="grid grid-cols-[1fr_auto] items-start gap-4">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="p-2 bg-slate-200 rounded-lg">
                               <Globe className="h-5 w-5 text-slate-700" />
@@ -472,7 +472,7 @@ export default function BusinessDetailPage() {
                               <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.websiteUrl}</p>
                             </div>
                           </div>
-                          <Button size="sm" variant="outline" className="justify-self-end" asChild>
+                          <Button size="sm" variant="outline" className="justify-self-end w-24 h-8 px-3 text-sm" asChild>
                             <a href={business.websiteUrl} target="_blank" rel="noopener noreferrer">Visit</a>
                           </Button>
                         </div>
@@ -481,7 +481,7 @@ export default function BusinessDetailPage() {
 
                     {business.facebookUrl && (
                       <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                        <div className="grid grid-cols-[1fr_auto] items-start gap-4">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="p-2 bg-blue-200 rounded-lg">
                               <Facebook className="h-5 w-5 text-blue-700" />
@@ -491,7 +491,7 @@ export default function BusinessDetailPage() {
                               <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.facebookUrl}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white justify-self-end" asChild>
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white justify-self-end w-24 h-8 px-3 text-sm" asChild>
                             <a href={business.facebookUrl} target="_blank" rel="noopener noreferrer">Open</a>
                           </Button>
                         </div>
@@ -500,7 +500,7 @@ export default function BusinessDetailPage() {
 
                     {business.gmbUrl && (
                       <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200">
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                        <div className="grid grid-cols-[1fr_auto] items-start gap-4">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="p-2 bg-emerald-200 rounded-lg">
                               <MapPin className="h-5 w-5 text-emerald-700" />
@@ -510,7 +510,7 @@ export default function BusinessDetailPage() {
                               <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.gmbUrl}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white justify-self-end" asChild>
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white justify-self-end w-24 h-8 px-3 text-sm" asChild>
                             <a href={business.gmbUrl} target="_blank" rel="noopener noreferrer">Open</a>
                           </Button>
                         </div>
@@ -519,7 +519,7 @@ export default function BusinessDetailPage() {
 
                     {business.youtubeUrl && (
                       <div className="p-4 bg-gradient-to-r from-rose-50 to-rose-100 rounded-xl border border-rose-200">
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                        <div className="grid grid-cols-[1fr_auto] items-start gap-4">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="p-2 bg-rose-200 rounded-lg">
                               <Youtube className="h-5 w-5 text-rose-700" />
@@ -529,7 +529,7 @@ export default function BusinessDetailPage() {
                               <p className="text-sm text-muted-foreground truncate max-w-[180px]">{business.youtubeUrl}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white justify-self-end" asChild>
+                          <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white justify-self-end w-24 h-8 px-3 text-sm" asChild>
                             <a href={business.youtubeUrl} target="_blank" rel="noopener noreferrer">Open</a>
                           </Button>
                         </div>
@@ -538,7 +538,7 @@ export default function BusinessDetailPage() {
 
                     {business.whatsapp && (
                       <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
-                        <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                        <div className="grid grid-cols-[1fr_auto] items-start gap-4">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="p-2 bg-green-200 rounded-lg">
                               <MessageCircle className="h-5 w-5 text-green-700" />
@@ -548,7 +548,7 @@ export default function BusinessDetailPage() {
                               <p className="text-sm text-muted-foreground">{business.whatsapp}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white justify-self-end" asChild>
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white justify-self-end w-24 h-8 px-3 text-sm" asChild>
                             <a
                               href={`https://wa.me/${business.whatsapp.replace(/[^0-9]/g, "")}`}
                               target="_blank"
@@ -573,7 +573,7 @@ export default function BusinessDetailPage() {
                               <p className="text-sm text-muted-foreground">{business.email}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white justify-self-end" asChild>
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white justify-self-end w-24 h-8 px-3 text-sm" asChild>
                             <a href={`mailto:${business.email}`}>Email</a>
                           </Button>
                         </div>

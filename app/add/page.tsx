@@ -39,7 +39,7 @@ const defaultCategories = ["Restaurant", "Retail", "Services", "Healthcare", "Ed
 export function AddBusinessForm({
   title = "List Your Business",
   description = "Join our directory and reach more customers",
-  categories = defaultCategories,
+  categories = [],
   onSubmitted,
 }: {
   title?: string
@@ -55,14 +55,14 @@ export function AddBusinessForm({
   const DESCRIPTION_MAX = 1000
   const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
   
-  // Local categories to support creating new ones on the fly
-  const [localCategories, setLocalCategories] = useState<string[]>(categories)
-  useEffect(() => setLocalCategories(categories), [categories])
+  // Local categories to support creating new ones on the fly (start empty, no hardcoded defaults)
+  const [localCategories, setLocalCategories] = useState<string[]>([])
   
   // Fetch categories from API (with session cache) so newly added categories appear in dropdown
   const fetchCategories = async () => {
     const now = Date.now()
     try {
+      setCatLoading(true)
       // Try sessionStorage first (but do NOT return early; we'll refresh in background)
       try {
         const raw = sessionStorage.getItem("add:categories")
@@ -95,6 +95,8 @@ export function AddBusinessForm({
       }
     } catch {
       // ignore
+    } finally {
+      setCatLoading(false)
     }
   }
   
@@ -105,6 +107,7 @@ export function AddBusinessForm({
   // Category combobox state
   const [catOpen, setCatOpen] = useState(false)
   const [catQuery, setCatQuery] = useState("")
+  const [catLoading, setCatLoading] = useState(true)
   const filteredCategories = useMemo(() => {
     const q = catQuery.trim().toLowerCase()
     if (!q) return localCategories
@@ -651,7 +654,7 @@ export function AddBusinessForm({
                       <Popover open={catOpen} onOpenChange={setCatOpen}>
                         <PopoverTrigger asChild>
                           <Button type="button" variant="outline" role="combobox" aria-expanded={catOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
-                            <span className="truncate">{form.category ? form.category : "Select a category"}</span>
+                            <span className="truncate">{form.category ? form.category : (catLoading ? "Loading..." : "Select a category")}</span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
                           </Button>
                         </PopoverTrigger>
@@ -659,7 +662,7 @@ export function AddBusinessForm({
                           <Command shouldFilter={false}>
                             <CommandInput placeholder="Search category..." value={catQuery} onValueChange={setCatQuery} className="h-9" />
                             <CommandEmpty>
-                              {"No categories found."}
+                              {catLoading ? "Loading..." : "No categories found."}
                             </CommandEmpty>
                             <CommandList>
                               <CommandGroup heading="Categories">
