@@ -28,9 +28,8 @@ export default function BusinessDetailPage() {
   const [reviewRating, setReviewRating] = useState<number>(5)
   const [reviewComment, setReviewComment] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  // Related businesses (same category)
+  // Related businesses (same category and city)
   const [related, setRelated] = useState<any[]>([])
-  const [rotateIndex, setRotateIndex] = useState(0)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -54,17 +53,18 @@ export default function BusinessDetailPage() {
     }
   }, [businessId])
 
-  // Fetch recently added businesses in same category (exclude current)
+  // Fetch recently added businesses in same category and city (exclude current)
   useEffect(() => {
     const fetchRelated = async () => {
       if (!business?.category) return
       try {
-        const params = new URLSearchParams({ category: business.category, limit: "12", status: "approved" })
+        const citySlug = String(business.city || '').toLowerCase().trim().replace(/\s+/g, '-')
+        const params = new URLSearchParams({ category: business.category, city: citySlug, limit: '2', status: 'approved' })
         const res = await fetch(`/api/business?${params.toString()}`)
         if (res.ok) {
           const data = await res.json()
           const items = (data.businesses || []).filter((b: any) => (b.id || b._id?.toString?.()) !== (business.id || business._id?.toString?.()))
-          setRelated(items)
+          setRelated(items.slice(0, 2))
         }
       } catch (e) {
         console.error("Error fetching related businesses", e)
@@ -73,20 +73,11 @@ export default function BusinessDetailPage() {
     fetchRelated()
   }, [business])
 
-  // Auto-rotate visible related businesses every 4s
-  useEffect(() => {
-    if (!related || related.length <= 3) return
-    const t = setInterval(() => {
-      setRotateIndex((idx) => (idx + 1) % related.length)
-    }, 4000)
-    return () => clearInterval(t)
-  }, [related])
-
   // Fetch reviews
   const fetchReviewsNow = async () => {
     if (!businessId) return
     try {
-      const res = await fetch(`/api/reviews?businessId=${businessId}`, { cache: "no-store" })
+      const res = await fetch(`/api/reviews?businessId=${businessId}&_=${Date.now()}`, { cache: "no-store" })
       if (res.ok) {
         const data = await res.json()
         setReviews(data.reviews || [])
@@ -120,20 +111,24 @@ export default function BusinessDetailPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        // Optimistically update for instant feedback
-        setReviews(prev => [{ ...payload, createdAt: new Date() }, ...prev])
+        // Optimistically update using server-returned review for immediate UI update
+        if (data?.review) {
+          setReviews(prev => [data.review, ...prev])
+        } else {
+          setReviews(prev => [{ ...payload, createdAt: new Date() }, ...prev])
+        }
         setRatingAvg(data.ratingAvg || 0)
         setRatingCount(data.ratingCount || 0)
         setReviewerName("")
         setReviewRating(5)
         setReviewComment("")
-        // Re-fetch to ensure we have canonical data from DB (do not block closing)
-        fetchReviewsNow().then(() => {
+        // Re-fetch shortly after to ensure we have canonical data from DB (do not block closing)
+        setTimeout(() => fetchReviewsNow().then(() => {
           // Scroll to reviews section after refresh
           try { reviewsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }) } catch {}
           // Log success for debugging
           console.info("Review submitted and list refreshed.")
-        })
+        }), 300)
         toast({ title: "Review submitted", description: "Thanks for your feedback!" })
       } else {
         // Keep dialog closed; show error toast
@@ -583,32 +578,24 @@ export default function BusinessDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* Recently Added in same category */}
+              {/* Recently Added in same category and city */}
               {related.length > 0 && (
                 <Card className="shadow-lg border-primary/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold text-foreground">Recently added in {business.category}</h4>
+                      <h4 className="font-bold text-foreground">Recently added in {business.category} in {business.city}</h4>
                     </div>
                     <div className="space-y-4">
-                      {(() => {
-                        const visibleCount = Math.min(4, related.length)
-                        const items: any[] = []
-                        for (let i = 0; i < visibleCount; i++) {
-                          const idx = (rotateIndex + i) % related.length
-                          items.push(related[idx])
-                        }
-                        return items
-                      })().map((b, i) => (
+                      {related.slice(0, 2).map((b, i) => (
                         <Link key={(b.id || b._id) + '-' + i} href={`/business/${b.slug || b.id || b._id}`}
-                          className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                          <div className="w-12 h-12 rounded-md bg-white border overflow-hidden flex items-center justify-center">
+                          className="flex items-center gap-4 p-5 rounded-xl border hover:bg-muted/50 transition-colors">
+                          <div className="w-24 h-24 rounded-lg bg-white border overflow-hidden flex items-center justify-center">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={b.logoUrl || (b as any).logo || b.imageUrl || "/bank-branch.png"} alt={b.name} className="w-full h-full object-contain p-1" />
+                            <img src={b.logoUrl || (b as any).logo || b.imageUrl || "/bank-branch.png"} alt={b.name} className="w-full h-full object-contain p-2" />
                           </div>
                           <div className="min-w-0">
-                            <div className="font-medium text-foreground truncate">{b.name}</div>
-                            <div className="text-xs text-muted-foreground truncate">{b.city}</div>
+                            <div className="font-semibold text-foreground truncate text-lg">{b.name}</div>
+                            <div className="text-sm text-muted-foreground truncate">{b.city}</div>
                           </div>
                         </Link>
                       ))}

@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { ChevronsUpDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
@@ -27,6 +30,10 @@ export function GlobalTopbar() {
 
   const [categories, setCategories] = useState<Array<{ slug: string; name: string }>>([])
   const [subcategories, setSubcategories] = useState<string[]>([])
+  const [citiesList, setCitiesList] = useState<Array<{ value: string; label: string }>>([])
+  const [loadingCities, setLoadingCities] = useState(true)
+  const [cityOpen, setCityOpen] = useState(false)
+  const [cityQuery, setCityQuery] = useState("")
 
   // Load categories
   useEffect(() => {
@@ -39,6 +46,37 @@ export function GlobalTopbar() {
         if (alive) setCategories(list.map((c: any) => ({ slug: c.slug, name: c.name || c.slug })))
       } catch {
         if (alive) setCategories([])
+      }
+    })()
+    return () => { alive = false }
+  }, [])
+
+  // Load cities from API (remove hardcoded list) with session cache for faster open
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setLoadingCities(true)
+        // try session cache first
+        try {
+          const raw = sessionStorage.getItem("topbar:cities")
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (Array.isArray(parsed?.data)) setCitiesList(parsed.data)
+          }
+        } catch {}
+        const res = await fetch('/api/cities', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        const list: Array<{ id: string; name: string }> = Array.isArray(data?.cities) ? data.cities : []
+        if (alive) {
+          const mapped = list.map(c => ({ value: c.name.toLowerCase().replace(/\s+/g, '-'), label: c.name }))
+          setCitiesList(mapped)
+          try { sessionStorage.setItem("topbar:cities", JSON.stringify({ data: mapped })) } catch {}
+        }
+      } catch {
+        if (alive) setCitiesList([])
+      } finally {
+        if (alive) setLoadingCities(false)
       }
     })()
     return () => { alive = false }
@@ -94,17 +132,38 @@ export function GlobalTopbar() {
             <Input placeholder="Search businesses or categories..." value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
 
-          <Select value={city} onValueChange={setCity}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="City" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cities</SelectItem>
-              {[
-                "karachi","lahore","islamabad","rawalpindi","faisalabad","multan","peshawar","quetta","sialkot","gujranwala",
-              ].map((c) => (
-                <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={cityOpen} onOpenChange={setCityOpen}>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" className="w-[220px] justify-between">
+                <span className="truncate">{city !== "all" ? (citiesList.find(x => x.value === city)?.label || city) : (loadingCities ? "Loading cities..." : "City")}</span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+              <Command shouldFilter={false}>
+                <CommandInput placeholder="Search city..." value={cityQuery} onValueChange={setCityQuery} className="h-9" />
+                <CommandEmpty>{loadingCities ? "Loading..." : "No city found."}</CommandEmpty>
+                <CommandList>
+                  <CommandGroup>
+                    {/* Render at most 100 items to keep it snappy */}
+                    {citiesList
+                      .filter(c => cityQuery.trim() === "" || c.label.toLowerCase().includes(cityQuery.trim().toLowerCase()))
+                      .slice(0, 100)
+                      .map((c) => (
+                        <CommandItem
+                          key={c.value}
+                          value={c.value}
+                          onSelect={(val) => { setCity(val); setCityOpen(false); setCityQuery("") }}
+                        >
+                          {c.label}
+                        </CommandItem>
+                      ))}
+                    <CommandItem value="all" onSelect={() => { setCity("all"); setCityOpen(false); setCityQuery("") }}>All Cities</CommandItem>
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
 
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger className="w-[200px]"><SelectValue placeholder="Category" /></SelectTrigger>

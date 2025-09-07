@@ -41,7 +41,7 @@ const fallbackIcon: Record<string, string> = {
 }
 
 export function CategoriesSection() {
-  const [showAll, setShowAll] = useState(true)
+  const [showAll, setShowAll] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -180,7 +180,7 @@ export function CategoriesSection() {
                 </div>
               </div>
             ) : (
-              <Link key={category.slug} href={`/category/${category.slug}`}>
+              <Link key={category.slug} href={`/category/${category.slug}`} prefetch>
                 <Card className="cursor-pointer group bg-white dark:bg-card border hover:shadow-xl transition-transform duration-300 hover:scale-105">
                   <CardContent className="p-0 text-center">
                     <div className="w-full aspect-[16/9] relative overflow-hidden rounded-t-md">
@@ -192,6 +192,7 @@ export function CategoriesSection() {
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
                           priority={false}
+                          loading="lazy"
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-4xl bg-muted">
@@ -240,6 +241,18 @@ export function CategoriesSection() {
               onClick={() => setShowAll(false)}
             >
               {loadingMore ? "Loading…" : "Show less"}
+            </Button>
+          </div>
+        )}
+        {!loading && !showAll && categories.length > 8 && (
+          <div className="text-center mt-12">
+            <Button
+              variant="outline"
+              size="lg"
+              className="px-8 bg-transparent"
+              onClick={() => setShowAll(true)}
+            >
+              View all
             </Button>
           </div>
         )}

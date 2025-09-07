@@ -170,52 +170,54 @@ export async function GET(req: NextRequest) {
       })
     }
     
-    // Build filter object for multiple businesses
-    const filter: any = {}
+    // Build filter with AND semantics; each field can have its own $or for fuzzy matching
+    const andConds: any[] = []
     if (category) {
       // Accept both exact and case-insensitive variants of the slug as stored category names may differ in casing/spaces
       // e.g., 'beauty-salon' vs 'Beauty & Salon' in DB
       const categoryRegex = new RegExp(category.replace(/-/g, "[\\s&]*"), 'i')
-      filter.$or = [...(filter.$or || []), { category }, { category: categoryRegex }]
+      andConds.push({ $or: [{ category }, { category: categoryRegex }] })
     }
     if (subCategoryParam) {
       const subcatRegex = new RegExp(subCategoryParam.replace(/-/g, "[\\s&]*"), 'i')
-      filter.$or = [...(filter.$or || []), { subCategory: subCategoryParam }, { subCategory: subcatRegex }]
+      andConds.push({ $or: [{ subCategory: subCategoryParam }, { subCategory: subcatRegex }] })
     }
-    if (province) filter.province = province
+    if (province) andConds.push({ province })
     if (city) {
       // Accept exact slug, case-insensitive name, and hyphen/space interchangeable variants
       // e.g., 'rahim-yar-khan' should match 'Rahim Yar Khan'
       const normalized = city.trim()
       const cityRegex = new RegExp(`^${normalized.replace(/-/g, "[\\s-]")}$`, 'i')
-      filter.$or = [...(filter.$or || []), { city: normalized }, { city: cityRegex }]
+      andConds.push({ $or: [{ city: normalized }, { city: cityRegex }] })
     }
-    if (area) filter.area = area
+    if (area) andConds.push({ area })
     if (status) {
       if (status === 'all') {
         // no status filter; include all statuses
       } else if (status.includes(',')) {
-        filter.status = { $in: status.split(',').map(s => s.trim()).filter(Boolean) }
+        andConds.push({ status: { $in: status.split(',').map(s => s.trim()).filter(Boolean) } })
       } else {
-        filter.status = status
+        andConds.push({ status })
       }
     } else {
       // By default, list only approved businesses on the public/main site
-      // Admin can pass ?status=pending or ?status=all (handled client-side) as needed
-      filter.status = "approved"
+      andConds.push({ status: "approved" })
     }
     if (q && q.trim()) {
       const regex = new RegExp(q.trim(), 'i')
-      filter.$or = [
-        ...(filter.$or || []),
-        { name: regex },
-        { description: regex },
-        { category: regex },
-        { province: regex },
-        { city: regex },
-        { area: regex },
-      ]
+      andConds.push({
+        $or: [
+          { name: regex },
+          { description: regex },
+          { category: regex },
+          { province: regex },
+          { city: regex },
+          { area: regex },
+        ]
+      })
     }
+
+    const filter: any = andConds.length === 0 ? {} : (andConds.length === 1 ? andConds[0] : { $and: andConds })
 
     // Build a projection to reduce payload size for list views
     const projection = {
@@ -283,7 +285,7 @@ export async function GET(req: NextRequest) {
       return acc
     }, [])
 
-    return NextResponse.json({
+    const resp = NextResponse.json({
       ok: true,
       businesses: businessesWithId,
       pagination: {
@@ -294,6 +296,13 @@ export async function GET(req: NextRequest) {
       },
       skipped
     })
+    const nocache = searchParams.get('nocache') === '1'
+    if (nocache) {
+      resp.headers.set('Cache-Control', 'no-store')
+    } else {
+      resp.headers.set('Cache-Control', 's-maxage=120, stale-while-revalidate=300')
+    }
+    return resp
   } catch (error: any) {
     console.error('Error fetching businesses:', {
       message: error?.message,

@@ -4,9 +4,14 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, Building, Tag, Loader2 } from "lucide-react"
+import { Search, Building, Tag, Loader2, ChevronsUpDown } from "lucide-react"
 import Link from "next/link"
 import { useDebounce } from "@/hooks/use-debounce"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 
 interface BusinessSuggestion {
   id: string
@@ -31,6 +36,17 @@ export function SearchBar() {
   const debouncedQuery = useDebounce(query, 500)
   const searchRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const router = useRouter()
+
+  // Filters
+  const [selectedCity, setSelectedCity] = useState<string>("")
+  const [selectedCategory, setSelectedCategory] = useState<string>("")
+  const [cities, setCities] = useState<Array<{ value: string; label: string }>>([])
+  const [citiesLoading, setCitiesLoading] = useState(true)
+  const [cityOpen, setCityOpen] = useState(false)
+  const [cityQuery, setCityQuery] = useState("")
+  const [categoriesList, setCategoriesList] = useState<Array<{ slug: string; name: string }>>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,7 +75,10 @@ export function SearchBar() {
         const controller = new AbortController()
         abortRef.current = controller
 
-        const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}` , { signal: controller.signal })
+        const params = new URLSearchParams({ q: debouncedQuery })
+        if (selectedCity) params.set('city', selectedCity)
+        if (selectedCategory) params.set('category', selectedCategory)
+        const res = await fetch(`/api/search?${params.toString()}` , { signal: controller.signal })
         const data = await res.json()
         if (data.ok) {
           setSuggestions({ businesses: data.businesses || [], categories: data.categories || [] })
@@ -83,20 +102,120 @@ export function SearchBar() {
     }
   }
 
+  // Load cities from API with session cache
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setCitiesLoading(true)
+        try {
+          const raw = sessionStorage.getItem("searchbar:cities")
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (Array.isArray(parsed?.data)) setCities(parsed.data)
+          }
+        } catch {}
+        const res = await fetch('/api/cities', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        const list: Array<{ id: string; name: string }> = Array.isArray(data?.cities) ? data.cities : []
+        if (alive) {
+          const mapped = list.map(c => ({ value: c.name.toLowerCase().replace(/\s+/g, '-'), label: c.name }))
+          setCities(mapped)
+          try { sessionStorage.setItem("searchbar:cities", JSON.stringify({ data: mapped })) } catch {}
+        }
+      } catch {
+        if (alive) setCities([])
+      } finally {
+        if (alive) setCitiesLoading(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [])
+
+  // Load categories from API
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setCategoriesLoading(true)
+        const res = await fetch('/api/categories?limit=200&nocache=1', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        const list: any[] = Array.isArray(data?.categories) ? data.categories : []
+        if (alive) setCategoriesList(list.map((c: any) => ({ slug: c.slug, name: c.name || c.slug })))
+      } catch {
+        if (alive) setCategoriesList([])
+      } finally {
+        if (alive) setCategoriesLoading(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [])
+
+  const performSearch = (e?: React.FormEvent) => {
+    e?.preventDefault()
+    const params = new URLSearchParams()
+    if (query.trim()) params.set("q", query.trim())
+    if (selectedCity) params.set("city", selectedCity)
+    if (selectedCategory) params.set("category", selectedCategory)
+    router.push(`/search?${params.toString()}`)
+  }
+
   return (
-    <div className="relative w-full max-w-md" ref={searchRef}>
-      <div className="relative">
-        <Input
-          type="text"
-          placeholder="Search for businesses or categories..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onClick={handleInputClick}
-          className="pl-10 pr-4 py-2 w-full"
-        />
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-          {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+    <form onSubmit={performSearch} className="relative w-full max-w-2xl" ref={searchRef}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
+        <div className="relative md:col-span-1">
+          <Input
+            type="text"
+            placeholder="Search for businesses or categories..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onClick={handleInputClick}
+            onKeyDown={(e) => { if (e.key === 'Enter') performSearch(e as any) }}
+            className="pl-10 pr-4 py-2 w-full"
+          />
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+          </div>
         </div>
+
+        <Popover open={cityOpen} onOpenChange={setCityOpen}>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="outline" className="w-full justify-between">
+              <span className="truncate">{selectedCity ? (cities.find(x => x.value === selectedCity)?.label || selectedCity) : (citiesLoading ? "Loading cities..." : "City")}</span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+            <Command shouldFilter={false}>
+              <CommandInput placeholder="Search city..." value={cityQuery} onValueChange={setCityQuery} className="h-9" />
+              <CommandEmpty>{citiesLoading ? "Loading..." : "No city found."}</CommandEmpty>
+              <CommandList>
+                <CommandGroup>
+                  {cities
+                    .filter(c => cityQuery.trim() === "" || c.label.toLowerCase().includes(cityQuery.trim().toLowerCase()))
+                    .slice(0, 100)
+                    .map((c) => (
+                      <CommandItem key={c.value} value={c.value} onSelect={(val) => { setSelectedCity(val); setCityOpen(false); setCityQuery("") }}>
+                        {c.label}
+                      </CommandItem>
+                    ))}
+                  <CommandItem value="" onSelect={() => { setSelectedCity(""); setCityOpen(false); setCityQuery("") }}>All Cities</CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger>
+            <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Category"} />
+          </SelectTrigger>
+          <SelectContent>
+            {categoriesList.map((cat) => (
+              <SelectItem key={cat.slug} value={cat.slug}>{cat.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isOpen && (suggestions.businesses.length > 0 || suggestions.categories.length > 0) && (
@@ -145,6 +264,9 @@ export function SearchBar() {
           </CardContent>
         </Card>
       )}
-    </div>
+      <div className="mt-2">
+        <Button type="submit" className="w-full md:w-auto">Search</Button>
+      </div>
+    </form>
   )
 }

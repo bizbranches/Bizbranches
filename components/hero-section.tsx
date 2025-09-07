@@ -5,6 +5,9 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { ChevronsUpDown } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
@@ -23,6 +26,14 @@ export function HeroSection() {
   const router = useRouter()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
+
+  // Dynamic filter options
+  const [cities, setCities] = useState<Array<{ id: string; name: string; slug: string }>>([])
+  const [citiesLoading, setCitiesLoading] = useState(true)
+  const [cityOpen, setCityOpen] = useState(false)
+  const [cityQuery, setCityQuery] = useState("")
+  const [categoriesList, setCategoriesList] = useState<Array<{ slug: string; name: string }>>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
 
   useEffect(() => {
     const debounceTimer = setTimeout(async () => {
@@ -78,6 +89,55 @@ export function HeroSection() {
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  // Load cities (from API) and categories (from Mongo via API)
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setCitiesLoading(true)
+        // Try sessionStorage cache first for instant open
+        try {
+          const raw = sessionStorage.getItem("hero:cities")
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (Array.isArray(parsed?.data)) setCities(parsed.data)
+          }
+        } catch {}
+        const res = await fetch('/api/cities', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        const list: Array<{ id: string; name: string }> = Array.isArray(data?.cities) ? data.cities : []
+        if (alive) {
+          const mapped = list.map(c => ({ id: String(c.id), name: c.name, slug: c.name.toLowerCase().replace(/\s+/g, '-') }))
+          setCities(mapped)
+          try { sessionStorage.setItem("hero:cities", JSON.stringify({ data: mapped })) } catch {}
+        }
+      } catch {
+        if (alive) setCities([])
+      } finally {
+        if (alive) setCitiesLoading(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setCategoriesLoading(true)
+        const res = await fetch('/api/categories?limit=200&nocache=1', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        const list: any[] = Array.isArray(data?.categories) ? data.categories : []
+        if (alive) setCategoriesList(list.map((c: any) => ({ slug: c.slug, name: c.name || c.slug })))
+      } catch {
+        if (alive) setCategoriesList([])
+      } finally {
+        if (alive) setCategoriesLoading(false)
+      }
+    })()
+    return () => { alive = false }
   }, [])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -247,39 +307,42 @@ export function HeroSection() {
               )}
             </div>
 
-            <Select value={selectedCity} onValueChange={setSelectedCity}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select City" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="karachi">Karachi</SelectItem>
-                <SelectItem value="lahore">Lahore</SelectItem>
-                <SelectItem value="islamabad">Islamabad</SelectItem>
-                <SelectItem value="rawalpindi">Rawalpindi</SelectItem>
-                <SelectItem value="faisalabad">Faisalabad</SelectItem>
-                <SelectItem value="multan">Multan</SelectItem>
-                <SelectItem value="peshawar">Peshawar</SelectItem>
-                <SelectItem value="quetta">Quetta</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover open={cityOpen} onOpenChange={setCityOpen}>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="outline" className="w-full justify-between">
+                  <span className="truncate">{selectedCity ? (cities.find(x => x.slug === selectedCity)?.name || selectedCity) : (citiesLoading ? "Loading cities..." : "Select City")}</span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command shouldFilter={false}>
+                  <CommandInput placeholder="Search city..." value={cityQuery} onValueChange={setCityQuery} className="h-9" />
+                  <CommandEmpty>{citiesLoading ? "Loading..." : "No city found."}</CommandEmpty>
+                  <CommandList>
+                    <CommandGroup>
+                      {cities
+                        .filter(c => cityQuery.trim() === "" || c.name.toLowerCase().includes(cityQuery.trim().toLowerCase()))
+                        .slice(0, 100)
+                        .map((c) => (
+                          <CommandItem key={c.id} value={c.slug} onSelect={(val) => { setSelectedCity(val); setCityOpen(false); setCityQuery("") }}>
+                            {c.name}
+                          </CommandItem>
+                        ))}
+                      <CommandItem value="" onSelect={() => { setSelectedCity(""); setCityOpen(false); setCityQuery("") }}>All Cities</CommandItem>
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
 
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
-                <SelectValue placeholder="Category" />
+                <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Category"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="restaurants">Restaurants</SelectItem>
-                <SelectItem value="healthcare">Healthcare</SelectItem>
-                <SelectItem value="education">Education</SelectItem>
-                <SelectItem value="automotive">Automotive</SelectItem>
-                <SelectItem value="retail">Retail</SelectItem>
-                <SelectItem value="beauty-spa">Beauty & Spa</SelectItem>
-                <SelectItem value="real-estate">Real Estate</SelectItem>
-                <SelectItem value="technology">Technology</SelectItem>
-                <SelectItem value="legal">Legal Services</SelectItem>
-                <SelectItem value="construction">Construction</SelectItem>
-                <SelectItem value="travel">Travel & Tourism</SelectItem>
-                <SelectItem value="finance">Financial Services</SelectItem>
+                {categoriesList.map((cat) => (
+                  <SelectItem key={cat.slug} value={cat.slug}>{cat.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

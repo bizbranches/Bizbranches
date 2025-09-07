@@ -16,19 +16,30 @@ export function SearchFilters() {
   const [category, setCategory] = useState(searchParams.get("category") || "all")
   const [categories, setCategories] = useState<{ value: string; label: string }[]>([])
   const [loadingCats, setLoadingCats] = useState(true)
+  const [citiesList, setCitiesList] = useState<Array<{ value: string; label: string }>>([])
+  const [loadingCities, setLoadingCities] = useState(true)
 
-  const cities = [
-    "karachi",
-    "lahore",
-    "islamabad",
-    "rawalpindi",
-    "faisalabad",
-    "multan",
-    "peshawar",
-    "quetta",
-    "sialkot",
-    "gujranwala",
-  ]
+  // Load cities from API
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setLoadingCities(true)
+        const res = await fetch('/api/cities', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        const list: Array<{ id: string; name: string }> = Array.isArray(data?.cities) ? data.cities : []
+        if (alive) {
+          const mapped = list.map(c => ({ value: c.name.toLowerCase().replace(/\s+/g, '-'), label: c.name }))
+          setCitiesList(mapped)
+        }
+      } catch {
+        if (alive) setCitiesList([])
+      } finally {
+        if (alive) setLoadingCities(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -82,13 +93,13 @@ export function SearchFilters() {
           <label className="text-sm font-medium mb-2 block">City</label>
           <Select value={city} onValueChange={setCity}>
             <SelectTrigger>
-              <SelectValue placeholder="All Cities" />
+              <SelectValue placeholder={loadingCities ? "Loading cities..." : "All Cities"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Cities</SelectItem>
-              {cities.map((cityName) => (
-                <SelectItem key={cityName} value={cityName}>
-                  {cityName.charAt(0).toUpperCase() + cityName.slice(1)}
+              {!loadingCities && citiesList.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
                 </SelectItem>
               ))}
             </SelectContent>
