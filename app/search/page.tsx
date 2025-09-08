@@ -159,9 +159,7 @@ export default function SearchPage() {
               <p className="text-muted-foreground mb-4">
                 Try adjusting your search criteria or browse our categories.
               </p>
-              <Button asChild>
-                <a href="/">Back to Home</a>
-              </Button>
+              {/* Back button removed as requested */}
             </div>
           )}
         </div>

@@ -15,11 +15,12 @@ export function GlobalTopbar() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Hide on homepage and business detail pages
+  // Hide on homepage, business detail pages, and Add Business page
   const hidden = useMemo(() => {
     if (!pathname) return false
     if (pathname === "/") return true
     if (pathname.startsWith("/business/")) return true
+    if (pathname.startsWith("/add")) return true
     return false
   }, [pathname])
 
@@ -126,15 +127,15 @@ export function GlobalTopbar() {
 
   return (
     <div className="w-full border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50">
-      <form onSubmit={apply} className="mx-auto w-[70%] px-4 py-3">
+      <form onSubmit={apply} className="mx-auto w-full md:w-[70%] px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex-1 min-w-[220px]">
-            <Input placeholder="Search businesses or categories..." value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="flex-1 min-w-0">
+            <Input placeholder="Search businesses or categories..." value={q} onChange={(e) => setQ(e.target.value)} className="w-full" />
           </div>
 
           <Popover open={cityOpen} onOpenChange={setCityOpen}>
             <PopoverTrigger asChild>
-              <Button type="button" variant="outline" className="w-[220px] justify-between">
+              <Button type="button" variant="outline" className="w-full sm:w-[220px] justify-between">
                 <span className="truncate">{city !== "all" ? (citiesList.find(x => x.value === city)?.label || city) : (loadingCities ? "Loading cities..." : "City")}</span>
                 <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
               </Button>
@@ -166,7 +167,7 @@ export function GlobalTopbar() {
           </Popover>
 
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[200px]"><SelectValue placeholder="Category" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map((c) => (
@@ -176,7 +177,7 @@ export function GlobalTopbar() {
           </Select>
 
           <Select value={subcategory} onValueChange={setSubcategory} disabled={category === "all" || subcategories.length === 0}>
-            <SelectTrigger className="w-[220px]"><SelectValue placeholder="Subcategory" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[220px]"><SelectValue placeholder="Subcategory" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Subcategories</SelectItem>
               {subcategories.map((s) => (
@@ -185,7 +186,7 @@ export function GlobalTopbar() {
             </SelectContent>
           </Select>
 
-          <Button type="submit" variant="default">Apply</Button>
+          <Button type="submit" variant="default" className="w-full sm:w-auto">Apply</Button>
         </div>
       </form>
     </div>

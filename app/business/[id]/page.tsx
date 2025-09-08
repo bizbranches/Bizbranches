@@ -1,7 +1,7 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -77,7 +77,7 @@ export default function BusinessDetailPage() {
   const fetchReviewsNow = async () => {
     if (!businessId) return
     try {
-      const res = await fetch(`/api/reviews?businessId=${businessId}&_=${Date.now()}`, { cache: "no-store" })
+      const res = await fetch(`/api/reviews?businessId=${businessId}`, { cache: "no-store" })
       if (res.ok) {
         const data = await res.json()
         setReviews(data.reviews || [])
@@ -111,24 +111,23 @@ export default function BusinessDetailPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        // Optimistically update using server-returned review for immediate UI update
-        if (data?.review) {
-          setReviews(prev => [data.review, ...prev])
-        } else {
-          setReviews(prev => [{ ...payload, createdAt: new Date() }, ...prev])
-        }
+        // Optimistically update for instant feedback
+        setReviews(prev => [{ ...payload, createdAt: new Date() }, ...prev])
         setRatingAvg(data.ratingAvg || 0)
         setRatingCount(data.ratingCount || 0)
         setReviewerName("")
         setReviewRating(5)
         setReviewComment("")
-        // Re-fetch shortly after to ensure we have canonical data from DB (do not block closing)
-        setTimeout(() => fetchReviewsNow().then(() => {
-          // Scroll to reviews section after refresh
-          try { reviewsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }) } catch {}
-          // Log success for debugging
-          console.info("Review submitted and list refreshed.")
-        }), 300)
+        // Smoothly scroll to reviews section right away
+        try { reviewsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }) } catch {}
+        console.info("Review submitted (optimistic). Scheduling refresh…")
+        // Schedule a delayed refresh to avoid read-after-write race where the new review
+        // hasn't propagated to the list yet. This keeps the optimistic review visible.
+        setTimeout(() => {
+          fetchReviewsNow().then(() => {
+            console.info("Reviews refreshed after submit.")
+          })
+        }, 1500)
         toast({ title: "Review submitted", description: "Thanks for your feedback!" })
       } else {
         // Keep dialog closed; show error toast
@@ -160,24 +159,21 @@ export default function BusinessDetailPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-foreground mb-4">Business Not Found</h1>
-          <p className="text-muted-foreground mb-4">The business you're looking for doesn't exist.</p>
-          <Button asChild>
-            <Link href="/">Back to Home</Link>
-          </Button>
+          <p className="text-muted-foreground">The business you're looking for doesn't exist.</p>
         </div>
       </main>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 overflow-x-hidden">
 
-      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-b">
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-b overflow-x-hidden">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-stretch gap-6 min-h-[9rem] md:min-h-[11rem]">
+          <div className="flex flex-col md:flex-row items-stretch gap-4 md:gap-6 min-h-[9rem] md:min-h-[11rem]">
             {/* Logo box */}
-            <div className="flex-shrink-0">
-              <div className="w-36 md:w-40 self-stretch rounded-xl border bg-white shadow-sm flex items-center justify-center overflow-hidden">
+            <div className="flex-shrink-0 flex md:block justify-center">
+              <div className="w-28 h-28 md:w-40 md:h-auto self-stretch rounded-xl border bg-white shadow-sm flex items-center justify-center overflow-hidden">
                 {(() => {
                   const raw = (business.logoUrl || (business as any).logo || business.imageUrl || "") as string
                   const src = (() => {
@@ -202,34 +198,34 @@ export default function BusinessDetailPage() {
             </div>
 
             {/* Title and meta - stretches to same height as logo box */}
-            <div className="flex-1 flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-2">
+            <div className="flex-1 flex flex-col justify-center text-center md:text-left">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
                 <Badge variant="secondary" className="bg-primary text-primary-foreground px-3 py-1">
                   {business.category}
                 </Badge>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 text-sm">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                   {ratingCount > 0 ? (
                     <>
-                      <span className="text-sm font-medium">{ratingAvg.toFixed(1)}</span>
-                      <span className="text-sm text-muted-foreground">({ratingCount} reviews)</span>
+                      <span className="font-medium">{ratingAvg.toFixed(1)}</span>
+                      <span className="text-muted-foreground">({ratingCount} reviews)</span>
                     </>
                   ) : (
-                    <span className="text-sm text-muted-foreground">No reviews yet</span>
+                    <span className="text-muted-foreground">No reviews yet</span>
                   )}
                 </div>
               </div>
-              <h1 className="text-4xl font-bold text-foreground mb-2 leading-tight flex items-center gap-3">
-                <span className="truncate">{business.name}</span>
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground mt-2 md:mt-0 mb-1 leading-tight flex items-center gap-3 flex-wrap justify-center md:justify-start">
+                <span className="break-words max-w-full">{business.name}</span>
                 {business.status === 'pending' && (
                   <span className="inline-flex items-center rounded bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide">
                     Approval pending
                   </span>
                 )}
               </h1>
-              <div className="flex items-center text-muted-foreground">
+              <div className="flex items-center text-muted-foreground justify-center md:justify-start mb-2">
                 <MapPin className="h-5 w-5 mr-2" />
-                <span className="text-lg">{business.address}</span>
+                <span className="text-base md:text-lg break-words">{business.address}</span>
               </div>
             </div>
           </div>
@@ -237,7 +233,7 @@ export default function BusinessDetailPage() {
       </div>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6">
           {/* City / Category / Subcategory breadcrumb moved here */}
           <div className="text-sm">
             {(() => {
@@ -247,7 +243,7 @@ export default function BusinessDetailPage() {
               const catSlug = category.toLowerCase().replace(/\s+/g, "-")
               const subSlug = sub ? sub.toLowerCase().replace(/\s+/g, "-") : ""
               return (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Button asChild variant="outline" size="sm" className="h-7 rounded-full px-3 bg-red-100 text-red-700 hover:bg-red-200 border-transparent transition-colors">
                     <Link href={`/city/${city}`}>
                       <span className="capitalize">{city}</span>
@@ -274,9 +270,6 @@ export default function BusinessDetailPage() {
             })()}
           </div>
           <Dialog open={openReview} onOpenChange={setOpenReview}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">Leave a review</Button>
-            </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Leave a review</DialogTitle>
@@ -568,7 +561,7 @@ export default function BusinessDetailPage() {
                               <p className="text-sm text-muted-foreground">{business.email}</p>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white justify-self-end w-24 h-8 px-3 text-sm" asChild>
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white justify-self-end w-24 h-8 px-3 mb-6  text-sm" asChild>
                             <a href={`mailto:${business.email}`}>Email</a>
                           </Button>
                         </div>
@@ -594,7 +587,7 @@ export default function BusinessDetailPage() {
                             <img src={b.logoUrl || (b as any).logo || b.imageUrl || "/bank-branch.png"} alt={b.name} className="w-full h-full object-contain p-2" />
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-foreground truncate text-lg">{b.name}</div>
+                            <div className="font-semibold text-foreground">{b.name}</div>
                             <div className="text-sm text-muted-foreground truncate">{b.city}</div>
                           </div>
                         </Link>
@@ -603,33 +596,6 @@ export default function BusinessDetailPage() {
                   </CardContent>
                 </Card>
               )}
-
-              {/* Quick Actions Card */}
-              <Card className="shadow-lg">
-                <CardContent className="p-6">
-                  <h4 className="font-bold text-foreground mb-4 text-center">Explore More</h4>
-                  <div className="space-y-3">
-                    <Button className="w-full bg-primary hover:bg-primary/90" asChild>
-                      <Link href={`/category/${business.category.toLowerCase().replace(/\s+/g, "-")}`}>
-                        Similar Businesses
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full border-primary text-primary hover:bg-primary/10 bg-transparent"
-                      asChild
-                    >
-                      <Link href={`/city/${business.city}`}>
-                        More in {business.city.charAt(0).toUpperCase() + business.city.slice(1)}
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
-                      <Link href="/add">Add Your Business</Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
             </div>
           </div>
         </div>
@@ -640,7 +606,7 @@ export default function BusinessDetailPage() {
             <div className="xl:col-span-2">
               <Card className="shadow-lg border-primary/10">
                 <CardContent className="p-8">
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                     <div>
                       <h2 className="text-2xl md:text-3xl font-bold text-foreground">Reviews</h2>
                       <div className="flex items-center gap-2 mt-2">
@@ -652,27 +618,31 @@ export default function BusinessDetailPage() {
                         )}
                       </div>
                     </div>
-                    <Button onClick={() => setOpenReview(true)} className="bg-primary hover:bg-primary/90">Leave a review</Button>
+                    <div className="sm:self-auto">
+                      <Button onClick={() => setOpenReview(true)} className="bg-primary hover:bg-primary/90 w-full sm:w-auto">Leave Review</Button>
+                    </div>
                   </div>
 
                   <div className="space-y-6">
                     {reviews.length === 0 && (
                       <div className="text-center text-muted-foreground py-8">No reviews yet.</div>
                     )}
-                    {reviews.map((r, idx) => (
-                      <div key={idx} className="p-4 rounded-lg border bg-card">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-semibold text-foreground">{r.name || 'Anonymous'}</div>
-                          <div className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</div>
+                    {[...reviews]
+                      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((r, idx) => (
+                        <div key={idx} className="p-4 rounded-lg border bg-card">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-semibold text-foreground">{r.name || 'Anonymous'}</div>
+                            <div className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</div>
+                          </div>
+                          <div className="flex items-center gap-1 mb-2">
+                            {[1,2,3,4,5].map(n => (
+                              <Star key={n} className={`h-4 w-4 ${n <= (r.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
+                            ))}
+                          </div>
+                          <p className="text-sm text-foreground leading-relaxed">{r.comment}</p>
                         </div>
-                        <div className="flex items-center gap-1 mb-2">
-                          {[1,2,3,4,5].map(n => (
-                            <Star key={n} className={`h-4 w-4 ${n <= (r.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
-                          ))}
-                        </div>
-                        <p className="text-sm text-foreground leading-relaxed">{r.comment}</p>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </CardContent>
               </Card>

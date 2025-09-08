@@ -460,11 +460,7 @@ export function AddBusinessForm({
   return (
     <div className="py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/">← Back to Home</Link>
-          </Button>
-        </div>
+        {/* Removed back button as requested */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">{title}</h1>
           <p className="text-gray-600">{description}</p>
