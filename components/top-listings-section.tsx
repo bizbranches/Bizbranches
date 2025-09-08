@@ -142,7 +142,7 @@ export function TopListingsSection() {
           return (
             <div className="space-y-8">
               {rows.map((row, idx) => (
-                <div key={idx} className="w-[90%] mx-auto">
+                <div key={idx} className="w-full">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {row.map((cat) => (
                       <FeaturedCategoryCard key={cat.slug} categoryName={cat.name} categorySlug={cat.slug} />

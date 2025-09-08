@@ -168,7 +168,7 @@ export function CategoriesSection() {
           )}
         </div>
 
-        <div className="w-[90%] mx-auto">
+        <div className="w-full">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6">
           {(loading ? Array.from({ length: 8 }) : visibleCategories).map((category: any, idx: number) => (
             loading ? (

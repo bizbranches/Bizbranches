@@ -30,6 +30,7 @@ export default function BusinessDetailPage() {
   const [submitting, setSubmitting] = useState(false)
   // Related businesses (same category and city)
   const [related, setRelated] = useState<any[]>([])
+  const [showMore, setShowMore] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -316,13 +317,28 @@ export default function BusinessDetailPage() {
             {/* About Section (replaces image gallery) */}
             <Card className="shadow-lg border-primary/10">
               <CardContent className="p-8">
-                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">About {business.name}</h2>
-                <div className="prose prose-sm md:prose-base max-w-none text-foreground overflow-visible">
-                  <p className="leading-relaxed whitespace-pre-line break-words">
-                    {business.description || "No description provided yet."}
-                  </p>
-                </div>
-
+                <h2 className="text-xl md:text-3xl font-bold text-foreground mb-3 md:mb-4">About {business.name}</h2>
+                {(() => {
+                  const desc = business.description || "No description provided yet."
+                  const isLong = desc.length > 220
+                  return (
+                    <div className="max-w-none text-foreground">
+                      <p className={`${!showMore ? 'line-clamp-4' : ''} text-sm md:text-base leading-relaxed whitespace-pre-line break-words`}> 
+                        {desc}
+                      </p>
+                      {isLong && (
+                        <button
+                          type="button"
+                          onClick={() => setShowMore((v) => !v)}
+                          className="mt-2 text-primary text-sm md:text-base font-medium hover:underline"
+                          aria-expanded={showMore}
+                        >
+                          {showMore ? 'Show less' : 'Read more'}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })()}
                 {/* Bank Details: show directly below description when category is Bank and fields exist */}
                 {(() => {
                   const isBank = String(business.category || '').toLowerCase().includes('bank')

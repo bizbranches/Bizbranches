@@ -459,7 +459,7 @@ export function AddBusinessForm({
 
   return (
     <div className="py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full md:max-w-4xl mx-auto">
         {/* Removed back button as requested */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">{title}</h1>
