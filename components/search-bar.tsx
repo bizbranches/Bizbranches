@@ -244,7 +244,7 @@ export function SearchBar() {
               {suggestions.businesses.map((business) => (
                 <li key={business.id}>
                   <Link
-                    href={`/business/${(business as any).slug || business.id}`}
+                    href={`/${(business as any).slug || business.id}`}
                     className="flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors"
                     onClick={() => setIsOpen(false)}
                   >

@@ -108,7 +108,7 @@ export default function BusinessListItem({ business, compact = false }: Props) {
             </Button>
           ) : (
             <Button size="sm" asChild>
-              <Link href={`/business/${business.slug || business.id}`}>View details</Link>
+              <Link href={`/${business.slug || business.id}`}>View details</Link>
             </Button>
           )}
         </div>

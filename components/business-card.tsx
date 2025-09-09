@@ -109,7 +109,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
           </div>
 
           <Button size="sm" asChild>
-            <Link href={`/business/${business.slug || business.id}`}>View Details</Link>
+            <Link href={`/${business.slug || business.id}`}>View Details</Link>
           </Button>
         </div>
       </CardContent>

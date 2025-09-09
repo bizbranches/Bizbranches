@@ -21,6 +21,15 @@ export function GlobalTopbar() {
     if (pathname === "/") return true
     if (pathname.startsWith("/business/")) return true
     if (pathname.startsWith("/add")) return true
+    // Also hide on clean business detail routes at '/:slug' (single segment),
+    // but keep visible on known top-level routes
+    const isSingleSegment = /^\/[^/]+\/?$/.test(pathname)
+    if (isSingleSegment) {
+      // Do NOT include "/" here; homepage is handled above. This ensures "/:slug" is treated as business detail.
+      const topLevel = ["/add", "/search", "/city", "/category", "/pending", "/admin"]
+      const isKnownTopLevel = topLevel.some((p) => pathname.startsWith(p))
+      if (!isKnownTopLevel) return true
+    }
     return false
   }, [pathname])
 

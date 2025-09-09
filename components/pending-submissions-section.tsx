@@ -100,7 +100,7 @@ export function PendingSubmissionsSection() {
                     <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{b.description}</p>
                     <div className="mt-3">
                       <Button asChild size="sm">
-                        <Link href={`/business/${b.slug || b.id}`}>View Details</Link>
+                        <Link href={`/${b.slug || b.id}`}>View Details</Link>
                       </Button>
                     </div>
                   </div>

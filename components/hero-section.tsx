@@ -158,7 +158,7 @@ export function HeroSection() {
         if (selectedSuggestionIndex >= 0) {
           const sel = combinedSuggestions[selectedSuggestionIndex]
           if (sel.type === 'business') {
-            router.push(`/business/${sel.data.slug || sel.data.id}`)
+            router.push(`/${sel.data.slug || sel.data.id}`)
           } else if (sel.type === 'category') {
             router.push(`/category/${sel.data.slug}`)
           }
@@ -177,7 +177,7 @@ export function HeroSection() {
     setShowSuggestions(false)
     if (item.type === 'business') {
       setSearchQuery(item.data.name)
-      router.push(`/business/${item.data.slug || item.data.id}`)
+      router.push(`/${item.data.slug || item.data.id}`)
     } else {
       setSearchQuery(item.data.name)
       router.push(`/category/${item.data.slug}`)

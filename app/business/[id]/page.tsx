@@ -13,8 +13,9 @@ import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 
 export default function BusinessDetailPage() {
-  const params = useParams()
-  const businessId = params.id as string
+  const params = useParams() as { id?: string; slug?: string }
+  // Support both /business/[id] (id) and clean /[slug] (slug)
+  const businessId = (params.id || params.slug || "") as string
   const [business, setBusiness] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [reviews, setReviews] = useState<any[]>([])
@@ -157,7 +158,7 @@ export default function BusinessDetailPage() {
 
   if (!business) {
     return (
-      <main className="max-w-4xl mx-auto px-6 py-8">
+      <main className="w-full px-4 md:px-8 lg:px-12 py-8 md:py-12">
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-foreground mb-4">Business Not Found</h1>
           <p className="text-muted-foreground">The business you're looking for doesn't exist.</p>
@@ -167,10 +168,10 @@ export default function BusinessDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-white overflow-x-hidden">
 
-      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-b overflow-x-hidden">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-white border-b overflow-x-hidden">
+        <div className="w-full px-4 md:px-8 lg:px-12 py-8">
           <div className="flex flex-col md:flex-row items-stretch gap-4 md:gap-6 min-h-[9rem] md:min-h-[11rem]">
             {/* Logo box */}
             <div className="flex-shrink-0 flex md:block justify-center">
@@ -233,7 +234,7 @@ export default function BusinessDetailPage() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-6 py-12">
+      <main className="w-full px-4 md:px-8 lg:px-12 py-8 md:py-12">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6">
           {/* City / Category / Subcategory breadcrumb moved here */}
           <div className="text-sm">
@@ -315,7 +316,7 @@ export default function BusinessDetailPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
           <div className="xl:col-span-2 space-y-8">
             {/* About Section (replaces image gallery) */}
-            <Card className="shadow-lg border-primary/10">
+            <Card className="shadow-sm border-rose-200 bg-rose-50 rounded-xl">
               <CardContent className="p-8">
                 <h2 className="text-xl md:text-3xl font-bold text-foreground mb-3 md:mb-4">About {business.name}</h2>
                 {(() => {
@@ -388,19 +389,19 @@ export default function BusinessDetailPage() {
                 })()}
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-center p-4 bg-rose-50 rounded-lg border border-rose-200">
                     <Clock className="h-8 w-8 text-primary mx-auto mb-2" />
                     <h4 className="font-semibold text-foreground">Open Hours</h4>
                     <p className="text-sm text-muted-foreground">9:00 AM - 6:00 PM</p>
                   </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-center p-4 bg-rose-50 rounded-lg border border-rose-200">
                     <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
                     <h4 className="font-semibold text-foreground">Customer Rating</h4>
                     <p className="text-sm text-muted-foreground">
                       {ratingCount > 0 ? `${ratingAvg.toFixed(1)} (${ratingCount} reviews)` : 'No reviews yet'}
                     </p>
                   </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-center p-4 bg-rose-50 rounded-lg border border-rose-200">
                     <MapPin className="h-8 w-8 text-primary mx-auto mb-2" />
                     <h4 className="font-semibold text-foreground">City</h4>
                     <p className="text-sm text-muted-foreground">{business.city}{business.postalCode ? ` (${business.postalCode})` : ''}</p>
@@ -435,7 +436,7 @@ export default function BusinessDetailPage() {
           <div className="xl:col-span-1">
             <div className="sticky top-8 space-y-6">
               {/* Contact Card */}
-              <Card className="shadow-lg border-primary/20">
+              <Card className="shadow-sm border-rose-200 bg-rose-50 rounded-xl">
                 <CardContent className="p-6">
                   <h3 className="text-xl font-bold text-foreground mb-6 text-center">Get In Touch</h3>
 
@@ -589,14 +590,14 @@ export default function BusinessDetailPage() {
 
               {/* Recently Added in same category and city */}
               {related.length > 0 && (
-                <Card className="shadow-lg border-primary/10">
+                <Card className="shadow-sm border-rose-200 bg-rose-50 rounded-xl">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-bold text-foreground">Recently added in {business.category} in {business.city}</h4>
                     </div>
                     <div className="space-y-4">
                       {related.slice(0, 2).map((b, i) => (
-                        <Link key={(b.id || b._id) + '-' + i} href={`/business/${b.slug || b.id || b._id}`}
+                        <Link key={(b.id || b._id) + '-' + i} href={`/${b.slug || b.id || b._id}`}
                           className="flex items-center gap-4 p-5 rounded-xl border hover:bg-muted/50 transition-colors">
                           <div className="w-24 h-24 rounded-lg bg-white border overflow-hidden flex items-center justify-center">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -617,10 +618,10 @@ export default function BusinessDetailPage() {
         </div>
 
         {/* Reviews Section - match left column width, leave right empty */}
-        <section className="mt-12" ref={reviewsRef}>
+        <section className="mt-12 md:mt-16" ref={reviewsRef}>
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
             <div className="xl:col-span-2">
-              <Card className="shadow-lg border-primary/10">
+              <Card className="shadow-sm border-rose-200 bg-rose-50 rounded-xl">
                 <CardContent className="p-8">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                     <div>

@@ -16,7 +16,7 @@ type FeaturedCategoryCardProps = {
 
 function BusinessCard({ b }: { b: (typeof mockBusinesses)[number] }) {
   return (
-    <Link href={`/business/${b.id}`} className="block group rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
+    <Link href={`/${(b as any).slug || b.id}`} className="block group rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
       <div className="relative">
         <Image
           src={b.image || "/placeholder.svg"}
