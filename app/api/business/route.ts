@@ -114,6 +114,8 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '12')
     const after = searchParams.get('after') // optional cursor (ISO date)
+    const searchMode = (searchParams.get('searchMode') || '').toLowerCase()
+    const suggest = searchParams.get('suggest') === '1'
 
     console.log('GET /api/business - Query params:', { id, slug, category, subCategory: subCategoryParam, province, city, area, status, q, page, limit })
 
@@ -205,8 +207,22 @@ export async function GET(req: NextRequest) {
       andConds.push({ status: "approved" })
     }
     if (q && q.trim()) {
-      // Use indexed text search (see indexes in lib/models.ts)
-      andConds.push({ $text: { $search: q.trim() } })
+      if (searchMode === 'regex') {
+        const regex = new RegExp(q.trim(), 'i')
+        andConds.push({
+          $or: [
+            { name: regex },
+            { description: regex },
+            { category: regex },
+            { province: regex },
+            { city: regex },
+            { area: regex },
+          ]
+        })
+      } else {
+        // Default: use indexed text search (see indexes in lib/models.ts)
+        andConds.push({ $text: { $search: q.trim() } })
+      }
     }
 
     const filter: any = andConds.length === 0 ? {} : (andConds.length === 1 ? andConds[0] : { $and: andConds })
@@ -241,13 +257,13 @@ export async function GET(req: NextRequest) {
       status: 1,
       createdAt: 1,
     } as const
-    if (q && q.trim()) {
+    if (q && q.trim() && searchMode !== 'regex') {
       ;(projection as any).score = { $meta: 'textScore' }
     }
 
     // Choose sort order
     let sort: any = { createdAt: -1 }
-    if (q && q.trim()) {
+    if (q && q.trim() && searchMode !== 'regex') {
       sort = { score: { $meta: 'textScore' }, createdAt: -1 }
     }
 
@@ -263,16 +279,42 @@ export async function GET(req: NextRequest) {
     }
 
     const skip = after ? 0 : (page - 1) * limit
-    const businesses = await models.businesses.find(cursorFilter, { projection })
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .toArray()
+    let businesses: any[] = []
+
+    if (suggest && q && q.trim()) {
+      // Suggestion mode: prefer name prefix matches, then contains
+      const qVal = q.trim()
+      const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const prefix = new RegExp(`^${esc(qVal)}`, 'i')
+      const contains = new RegExp(esc(qVal), 'i')
+      const matchStage = { $match: cursorFilter }
+      const addFields = {
+        $addFields: {
+          prefixMatch: { $cond: [{ $regexMatch: { input: "$name", regex: prefix } }, 1, 0] },
+          containsMatch: { $cond: [{ $regexMatch: { input: "$name", regex: contains } }, 1, 0] },
+        }
+      }
+      const pipeline = [
+        matchStage,
+        addFields as any,
+        { $sort: { prefixMatch: -1, containsMatch: -1, createdAt: -1, name: 1 } },
+        { $project: projection },
+        { $skip: skip },
+        { $limit: limit }
+      ]
+      businesses = await models.businesses.aggregate(pipeline).toArray()
+    } else {
+      businesses = await models.businesses.find(cursorFilter, { projection })
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .toArray()
+    }
 
     // Exact total can be expensive; keep existing behavior but you can disable by passing count=0
     const countParam = searchParams.get('count')
     const wantCount = countParam !== '0'
-    const total = wantCount ? await models.businesses.countDocuments(filter) : undefined
+    const total = suggest ? undefined : (wantCount ? await models.businesses.countDocuments(filter) : undefined)
 
     // Lightweight log
     console.log(`Found ${businesses.length} businesses, total: ${total}`)

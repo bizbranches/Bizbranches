@@ -44,8 +44,9 @@ export function HeroSection() {
           if (selectedCity) params.set('city', selectedCity)
           if (selectedCategory) params.set('category', selectedCategory)
 
+          // Use regex mode for suggestions so it works even if text index is not available
           const [bRes, cRes] = await Promise.all([
-            fetch(`/api/business?${params.toString()}`),
+            fetch(`/api/business?${params.toString()}&searchMode=regex&suggest=1`, { cache: 'no-store' }),
             fetch(`/api/categories?q=${encodeURIComponent(q)}&limit=6`),
           ])
           const bJson = bRes.ok ? await bRes.json() : { businesses: [] }
