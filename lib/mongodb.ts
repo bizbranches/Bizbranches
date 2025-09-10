@@ -13,6 +13,8 @@ if (!uri) {
 }
 
 const client = new MongoClient(uri, {
+  maxPoolSize: parseInt(process.env.MONGO_MAX_POOL || '10'),
+  minPoolSize: parseInt(process.env.MONGO_MIN_POOL || '1'),
   serverSelectionTimeoutMS: 7000,
   appName: "Biz.com",
   family: 4,

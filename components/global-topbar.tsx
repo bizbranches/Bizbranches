@@ -144,7 +144,7 @@ export function GlobalTopbar() {
 
           <Popover open={cityOpen} onOpenChange={setCityOpen}>
             <PopoverTrigger asChild>
-              <Button type="button" variant="outline" className="w-full sm:w-[220px] justify-between">
+              <Button type="button" variant="outline" animated={false} className="w-full sm:w-[220px] justify-between">
                 <span className="truncate">{city !== "all" ? (citiesList.find(x => x.value === city)?.label || city) : (loadingCities ? "Loading cities..." : "City")}</span>
                 <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
               </Button>
@@ -195,7 +195,7 @@ export function GlobalTopbar() {
             </SelectContent>
           </Select>
 
-          <Button type="submit" variant="default" className="w-full sm:w-auto">Apply</Button>
+          <Button type="submit" variant="default" animated={false} className="w-full sm:w-auto">Apply</Button>
         </div>
       </form>
     </div>

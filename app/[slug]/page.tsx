@@ -11,13 +11,13 @@ function serializeId(doc: any) {
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const { slug } = params
   const models = await getModels()
-  const slug = params.slug
   const biz = await models.businesses.findOne({ $or: [{ slug }, { id: slug }] as any })
   const b: any = serializeId(biz)
 
   // Resolve request domain for title formatting: domain/business-name
-  const hdrs = headers()
+  const hdrs = await headers()
   const host = hdrs.get("x-forwarded-host") || hdrs.get("host") || "bizbranches.local"
   const domain = host.replace(/^(https?:\/\/)?/i, "").replace(/\/$/, "")
 
@@ -43,8 +43,8 @@ export default async function BusinessBySlugPage({
 }: {
   params: { slug: string }
 }) {
+  const { slug } = params
   const models = await getModels()
-  const slug = params.slug
 
   // Business
   const bizDoc = await models.businesses.findOne({ $or: [{ slug }, { id: slug }] as any })

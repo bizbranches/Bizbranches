@@ -4,6 +4,7 @@ import BusinessListItem from "@/components/business-list-item"
 import { useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import FancyLoader from "@/components/fancy-loader"
 
 type Business = {
   id: string
@@ -42,7 +43,7 @@ export default function SearchPage() {
     setCurrentPage(1)
   }, [query, city, category])
 
-    // Fetch from API when filters or page change
+  // Fetch from API when filters or page change
   useEffect(() => {
     const controller = new AbortController()
     const fetchData = async () => {
@@ -114,7 +115,9 @@ export default function SearchPage() {
         {/* Results - full width under 70% global container */}
         <div>
           {isLoading && (
-            <div className="text-center text-muted-foreground py-12">Loading listings...</div>
+            <div className="py-16 flex items-center justify-center">
+              <FancyLoader />
+            </div>
           )}
           {error && (
             <div className="text-center text-destructive py-8">{error}</div>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import type React from "react"
@@ -60,7 +59,7 @@ export function HeroSection() {
           const combined: Array<{ type: 'business' | 'category'; data: any }> = [
             ...b.map((x) => ({ type: 'business' as const, data: x })),
             ...c.map((x) => ({ type: 'category' as const, data: x })),
-          ]
+          ].sort((a, b) => (a.type === 'business' && b.type === 'category' ? -1 : a.type === 'category' && b.type === 'business' ? 1 : 0))
           setCombinedSuggestions(combined)
           setShowSuggestions(combined.length > 0)
           setSelectedSuggestionIndex(-1)
@@ -310,7 +309,7 @@ export function HeroSection() {
 
             <Popover open={cityOpen} onOpenChange={setCityOpen}>
               <PopoverTrigger asChild>
-                <Button type="button" variant="outline" className="w-full justify-between">
+                <Button type="button" variant="outline" animated={false} className="w-full justify-between">
                   <span className="truncate">{selectedCity ? (cities.find(x => x.slug === selectedCity)?.name || selectedCity) : (citiesLoading ? "Loading cities..." : "Select City")}</span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
                 </Button>
@@ -347,7 +346,7 @@ export function HeroSection() {
               </SelectContent>
             </Select>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" animated={false} className="w-full">
               Search
             </Button>
           </div>

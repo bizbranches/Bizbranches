@@ -1,3 +1,11 @@
-export default function Loading() {
-  return null
+import FancyLoader from "@/components/fancy-loader"
+
+export default function LoadingSearch() {
+  return (
+    <div className="min-h-screen bg-background">
+      <main className="px-4 py-12 flex items-center justify-center">
+        <FancyLoader />
+      </main>
+    </div>
+  )
 }

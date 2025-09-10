@@ -113,6 +113,7 @@ export async function GET(req: NextRequest) {
     const subCategoryParam = searchParams.get('subcategory') || searchParams.get('subCategory')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '12')
+    const after = searchParams.get('after') // optional cursor (ISO date)
 
     console.log('GET /api/business - Query params:', { id, slug, category, subCategory: subCategoryParam, province, city, area, status, q, page, limit })
 
@@ -204,23 +205,14 @@ export async function GET(req: NextRequest) {
       andConds.push({ status: "approved" })
     }
     if (q && q.trim()) {
-      const regex = new RegExp(q.trim(), 'i')
-      andConds.push({
-        $or: [
-          { name: regex },
-          { description: regex },
-          { category: regex },
-          { province: regex },
-          { city: regex },
-          { area: regex },
-        ]
-      })
+      // Use indexed text search (see indexes in lib/models.ts)
+      andConds.push({ $text: { $search: q.trim() } })
     }
 
     const filter: any = andConds.length === 0 ? {} : (andConds.length === 1 ? andConds[0] : { $and: andConds })
 
     // Build a projection to reduce payload size for list views
-    const projection = {
+    const projection: any = {
       name: 1,
       slug: 1,
       category: 1,
@@ -249,16 +241,38 @@ export async function GET(req: NextRequest) {
       status: 1,
       createdAt: 1,
     } as const
+    if (q && q.trim()) {
+      ;(projection as any).score = { $meta: 'textScore' }
+    }
 
-    const skip = (page - 1) * limit
-    
-    const businesses = await models.businesses.find(filter, { projection })
-      .sort({ createdAt: -1 })
+    // Choose sort order
+    let sort: any = { createdAt: -1 }
+    if (q && q.trim()) {
+      sort = { score: { $meta: 'textScore' }, createdAt: -1 }
+    }
+
+    // Support cursor pagination via ?after=ISO, else fallback to page/limit
+    let cursorFilter = { ...filter }
+    if (after) {
+      try {
+        const afterDate = new Date(after)
+        if (!Number.isNaN(afterDate.getTime())) {
+          ;(cursorFilter as any).createdAt = { ...(cursorFilter as any).createdAt, $lt: afterDate }
+        }
+      } catch {}
+    }
+
+    const skip = after ? 0 : (page - 1) * limit
+    const businesses = await models.businesses.find(cursorFilter, { projection })
+      .sort(sort)
       .skip(skip)
       .limit(limit)
       .toArray()
 
-    const total = await models.businesses.countDocuments(filter)
+    // Exact total can be expensive; keep existing behavior but you can disable by passing count=0
+    const countParam = searchParams.get('count')
+    const wantCount = countParam !== '0'
+    const total = wantCount ? await models.businesses.countDocuments(filter) : undefined
 
     // Lightweight log
     console.log(`Found ${businesses.length} businesses, total: ${total}`)
@@ -292,7 +306,8 @@ export async function GET(req: NextRequest) {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
+        pages: typeof total === 'number' ? Math.ceil(total / limit) : undefined,
+        nextCursor: businesses.length === limit ? (businesses[businesses.length - 1]?.createdAt?.toISOString?.() || null) : null,
       },
       skipped
     })

@@ -19,3 +19,20 @@ cloudinary.config({
 })
 
 export default cloudinary
+
+// Build a Cloudinary delivery URL with sensible defaults (auto format/quality, width)
+export function buildCdnUrl(publicId?: string | null, opts: { w?: number; h?: number } = {}): string | undefined {
+  if (!publicId || !CLOUDINARY_CLOUD_NAME) return undefined
+  if (/^https?:\/\//i.test(publicId)) return publicId
+  const w = opts.w ?? 800
+  const h = opts.h
+  // Remove extension and any accidental upload prefix
+  let cleanId = String(publicId)
+    .replace(/^https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/v?\d+\//, "")
+    .replace(/^https?:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//, "")
+    .replace(/\.[^/.]+$/, "")
+  const base = [`f_auto`, `q_auto`, `w_${w}`]
+  if (h) base.push(`h_${h}`)
+  const transformations = base.join(",")
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${transformations}/${cleanId}`
+}

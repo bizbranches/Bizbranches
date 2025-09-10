@@ -568,7 +568,7 @@ export function AddBusinessForm({
                     <Label className="text-gray-700 font-medium mb-2 block">Province <span className="text-red-500">*</span></Label>
                     <Popover open={provinceOpen} onOpenChange={setProvinceOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" role="combobox" aria-expanded={provinceOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
+                        <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={provinceOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
                           <span className="truncate">{form.province || (provLoading ? "Loading..." : "Select province")}</span>
                           <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
                         </Button>
@@ -617,7 +617,7 @@ export function AddBusinessForm({
                     <Label className="text-gray-700 font-medium mb-2 block">City <span className="text-red-500">*</span></Label>
                     <Popover open={cityOpen} onOpenChange={setCityOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" role="combobox" aria-expanded={cityOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
+                        <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={cityOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
                           <span className="truncate">{form.city || (cityLoading ? "Loading..." : "Select city")}</span>
                           <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
                         </Button>
@@ -645,7 +645,7 @@ export function AddBusinessForm({
                       <Label className="text-gray-700 font-medium mb-2 block">Category <span className="text-red-500">*</span></Label>
                       <Popover open={catOpen} onOpenChange={setCatOpen}>
                         <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" role="combobox" aria-expanded={catOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
+                          <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={catOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
                             <span className="truncate">{form.category ? form.category : (catLoading ? "Loading..." : "Select a category")}</span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
                           </Button>
@@ -681,7 +681,7 @@ export function AddBusinessForm({
                       <Label className="text-gray-700 font-medium mb-2 block">Subcategory</Label>
                       <Popover open={subCatOpen} onOpenChange={setSubCatOpen}>
                         <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" role="combobox" aria-expanded={subCatOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
+                          <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={subCatOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
                             <span className="truncate">{form.subCategory || (subCatLoading ? "Loading..." : (subCategoryOptions.length ? "Select subcategory" : "No subcategories"))}</span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
                           </Button>

@@ -7,6 +7,7 @@ import { cities } from "@/lib/mock-data"
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { CategoryFooter } from "@/components/category-footer"
+import FancyLoader from "@/components/fancy-loader"
 
 export default function CategoryPage() {
   const params = useParams()
@@ -130,8 +131,8 @@ export default function CategoryPage() {
 
         {/* Business Listings */}
         {loading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Loading businesses...</p>
+          <div className="py-16 flex items-center justify-center">
+            <FancyLoader />
           </div>
         ) : currentBusinesses.length > 0 ? (
           <>
