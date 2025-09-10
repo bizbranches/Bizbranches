@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface FormState {
   businessName: string
-  contactPersonName: string
+  contactPersonName?: string
   category: string
   subCategory?: string
   province: string
@@ -25,7 +25,7 @@ interface FormState {
   address: string
   phone: string
   whatsapp?: string
-  email: string
+  email?: string
   description: string
   logoFile?: File | null
   websiteUrl?: string
@@ -219,13 +219,11 @@ export function AddBusinessForm({
   const completionPercentage = useMemo(() => {
     const requiredFields = [
       form.businessName,
-      form.contactPersonName,
       form.category,
       form.province,
       form.city,
       form.address,
       form.phone,
-      form.email,
       form.description,
       form.logoFile
     ];
@@ -340,13 +338,11 @@ export function AddBusinessForm({
 
     const required = [
       ["businessName", form.businessName],
-      ["contactPersonName", form.contactPersonName],
       ["category", form.category],
       ["province", form.province],
       ["city", form.city],
       ["address", form.address],
       ["phone", form.phone],
-      ["email", form.email],
       ["description", form.description],
     ] as const
 
@@ -385,7 +381,7 @@ export function AddBusinessForm({
       // Build multipart/form-data to match /api/business expectations
       const fd = new FormData()
       fd.append("name", form.businessName)
-      fd.append("contactPerson", form.contactPersonName)
+      if (form.contactPersonName) fd.append("contactPerson", form.contactPersonName)
       fd.append("category", form.category)
       if (form.subCategory) fd.append("subCategory", form.subCategory)
       fd.append("province", form.province)
@@ -394,7 +390,7 @@ export function AddBusinessForm({
       fd.append("address", form.address)
       fd.append("phone", form.phone)
       fd.append("whatsapp", form.whatsapp || "")
-      fd.append("email", form.email)
+      if (form.email) fd.append("email", form.email)
       fd.append("description", form.description)
       if (form.websiteUrl) fd.append("websiteUrl", form.websiteUrl)
       if (form.facebookUrl) fd.append("facebookUrl", form.facebookUrl)
@@ -735,7 +731,7 @@ export function AddBusinessForm({
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <Label htmlFor="contactPersonName" className="text-gray-700 font-medium mb-2 block">Contact Person <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="contactPersonName" className="text-gray-700 font-medium mb-2 block">Contact Person</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                       <Input 
@@ -750,7 +746,7 @@ export function AddBusinessForm({
                   </div>
 
                   <div>
-                    <Label htmlFor="email" className="text-gray-700 font-medium mb-2 block">Email Address <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="email" className="text-gray-700 font-medium mb-2 block">Email Address</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                       <Input 
