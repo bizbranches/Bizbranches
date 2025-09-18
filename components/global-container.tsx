@@ -19,9 +19,12 @@ export default function GlobalContainer({ children }: PropsWithChildren) {
 
   if (!shouldWrap) return <>{children}</>
 
-  // Default: 100% width on mobile, 70% on md+
+  // Use full width for the /search route so its own grid can manage 15%/70%/15% layout.
+  // Keep 70% width for other sections to retain the centered content style.
+  const wrapClass = pathname.startsWith("/search") ? "w-full" : "md:w-[70%]"
+
   return (
-    <div className="mx-auto w-full md:w-[70%] min-h-[calc(100vh-var(--header-footer-offset,0px))]">
+    <div className={`mx-auto w-full ${wrapClass} min-h-[calc(100vh-var(--header-footer-offset,0px))]`}>
       {children}
     </div>
   )

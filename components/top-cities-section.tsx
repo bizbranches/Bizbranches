@@ -6,37 +6,37 @@ const topCities = [
     name: "Karachi",
     slug: "karachi",
     businesses: 3200,
-    image: "/karachi-skyline-with-modern-buildings.png",
+    image: "/karachi-skyline-with-modern-buildings.webp",
   },
   {
     name: "Lahore",
     slug: "lahore",
     businesses: 2800,
-    image: "/lahore-historical-architecture-and-modern-city.png",
+    image: "/lahore-historical-architecture-and-modern-city.webp",
   },
   {
     name: "Islamabad",
     slug: "islamabad",
     businesses: 1900,
-    image: "/islamabad-capital-city-with-mountains.png",
+    image: "/islamabad-capital-city-with-mountains.webp",
   },
   {
     name: "Rawalpindi",
     slug: "rawalpindi",
     businesses: 1200,
-    image: "/rawalpindi-bustling-commercial-area.png",
+    image: "/rawalpindi-bustling-commercial-area.webp",
   },
   {
     name: "Faisalabad",
     slug: "faisalabad",
     businesses: 980,
-    image: "/faisalabad-industrial-city-pakistan.png",
+    image: "/faisalabad-industrial-city-pakistan.webp",
   },
   {
     name: "Multan",
     slug: "multan",
     businesses: 750,
-    image: "/multan-historical-city-pakistan.png",
+    image: "/multan-historical-city-pakistan.webp",
   },
 ]
 

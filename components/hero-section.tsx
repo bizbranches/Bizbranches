@@ -214,20 +214,23 @@ export function HeroSection() {
 
   return (
     <section
-      className="relative bg-gradient-to-r from-primary/10 to-accent/10 py-24 flex items-center"
+      className="relative flex items-center"
       style={{ minHeight: `calc(100vh - ${headerHeight}px)` }}
     >
-      <div className="absolute inset-0 bg-[url('/pakistani-cityscape-with-modern-buildings.png')] bg-cover bg-center opacity-20"></div>
+      {/* Full-bleed background image */}
+      <div className="absolute inset-0 bg-[url('/hero.webp')] bg-cover bg-center"></div>
+      {/* Dark overlay for legibility */}
+      <div className="absolute inset-0 bg-black/40"></div>
 
       <div className="relative container mx-auto px-4 text-center">
-        <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 text-balance">
-          Find the Best Businesses in Pakistan
+        <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-lg mb-4 whitespace-nowrap overflow-hidden text-ellipsis">
+        Pakistan’s #1 Business Directory
         </h1>
-        <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-pretty">
-          Discover local businesses, services, and professionals across Pakistan. Connect with trusted providers in your
-          city.
+        <p className="text-lg md:text-2xl text-white/90 drop-shadow mb-8 max-w-3xl mx-auto text-pretty">
+          Helping you find the best service providers in your area
         </p>
 
+        {/* Original search bar layout (restored) */}
         <form onSubmit={handleSearch} className="bg-card p-6 rounded-lg shadow-lg max-w-5xl mx-auto mb-8">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
             <div className="relative md:col-span-3">

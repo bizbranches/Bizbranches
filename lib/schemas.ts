@@ -19,6 +19,7 @@ export const BusinessSchema = z.object({
   facebookUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
   gmbUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
   youtubeUrl: z.string().url().optional().transform(val => (val === "" ? undefined : val)),
+  profileUsername: z.string().optional().transform(val => (val === "" ? undefined : val)),
   // Bank-specific optional fields
   swiftCode: z.string().optional().transform(val => (val === "" ? undefined : val)),
   branchCode: z.string().optional().transform(val => (val === "" ? undefined : val)),
@@ -68,6 +69,10 @@ export const CreateBusinessSchema = z.object({
   youtubeUrl: z.preprocess(
     (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
     z.string().url().optional(),
+  ),
+  profileUsername: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+    z.string().optional(),
   ),
   // Bank-specific optional fields
   swiftCode: z.preprocess(

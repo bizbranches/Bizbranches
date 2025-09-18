@@ -32,6 +32,8 @@ export default function BusinessDetailPage() {
   // Related businesses (same category and city)
   const [related, setRelated] = useState<any[]>([])
   const [showMore, setShowMore] = useState(false)
+  // Optional linked profile info
+  const [profile, setProfile] = useState<{ name?: string; title?: string; avatarUrl?: string } | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -54,6 +56,48 @@ export default function BusinessDetailPage() {
       fetchBusiness()
     }
   }, [businessId])
+
+  // Load linked profile if provided by business document
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setProfile(null)
+        const username = (business as any)?.profileUsername
+        if (!username) return
+        const res = await fetch(`/api/profile?username=${encodeURIComponent(username)}`, { cache: 'no-store' })
+        if (!res.ok) return
+        const json = await res.json().catch(() => ({}))
+        if (json?.ok && json?.profile) {
+          setProfile({
+            name: json.profile.name || undefined,
+            title: json.profile.title || undefined,
+            avatarUrl: json.profile.avatarUrl || undefined,
+          })
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    loadProfile()
+  }, [business])
+
+  const initials = (full?: string) => {
+    if (!full) return "JD"
+    const p = full.trim().split(/\s+/)
+    const first = p[0]?.[0] || ''
+    const last = p.length > 1 ? p[p.length - 1][0] : ''
+    return (first + last).toUpperCase() || full.slice(0, 2).toUpperCase()
+  }
+
+  // Dynamic open hours for Bank category
+  const isBankCategory = String((business as any)?.category || '').toLowerCase().includes('bank')
+  const now = new Date()
+  const weekday = now.toLocaleDateString(undefined, { weekday: 'long' })
+  const isSunday = now.getDay() === 0
+  const OPEN_HOUR = 9 // 09:00
+  const CLOSE_HOUR = 17 // 05:00 PM
+  const currentHourFloat = now.getHours() + now.getMinutes() / 60
+  const isOpenNow = !isSunday && currentHourFloat >= OPEN_HOUR && currentHourFloat < CLOSE_HOUR
 
   // Fetch recently added businesses in same category and city (exclude current)
   useEffect(() => {
@@ -199,8 +243,8 @@ export default function BusinessDetailPage() {
               </div>
             </div>
 
-            {/* Title and meta - stretches to same height as logo box */}
-            <div className="flex-1 flex flex-col justify-center text-center md:text-left">
+            {/* Title and meta - constrain to 60% width on desktop */}
+            <div className="flex flex-col justify-center text-center md:text-left md:flex-none md:basis-[60%] md:max-w-[60%]">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
                 <Badge variant="secondary" className="bg-primary text-primary-foreground px-3 py-1">
                   {business.category}
@@ -225,11 +269,45 @@ export default function BusinessDetailPage() {
                   </span>
                 )}
               </h1>
-              <div className="flex items-center text-muted-foreground justify-center md:justify-start mb-2">
+              <div className="flex items-start text-muted-foreground justify-center md:justify-start mb-2">
                 <MapPin className="h-5 w-5 mr-2" />
-                <span className="text-base md:text-lg break-words">{business.address}</span>
+                <span className="text-base md:text-lg break-words whitespace-normal">{business.address}</span>
               </div>
             </div>
+
+            {/* Right-side profile card (matches header height) */}
+            {false && (
+              <div className="hidden md:block w-full md:w-72 relative">
+                {/* Half-outside profile avatar at top-left corner */}
+                <div className="absolute -left-10 top-0 -translate-y-1/2 z-10 w-24 h-24 rounded-full bg-muted border shadow-lg flex items-center justify-center text-xl font-semibold text-foreground overflow-hidden">
+                  {profile?.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profile.avatarUrl} alt={profile?.name || "Profile"} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{initials(profile?.name)}</span>
+                  )}
+                </div>
+                <Card className="self-stretch h-full shadow-sm border-rose-200/70 bg-white/80 backdrop-blur-sm rounded-xl">
+                  <CardContent className="h-full p-4 pl-6 pt-12 flex flex-col items-center justify-center text-center">
+                    {/* Profile name and title (fallbacks if missing) */}
+                    <div className="font-semibold text-foreground">{profile?.name || "Profile"}</div>
+                    <div className="text-sm text-muted-foreground mb-3">{profile?.title || "Business Representative"}</div>
+                    {/* Social icons */}
+                    <div className="flex items-center gap-3">
+                      <a href="#" aria-label="Website" className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+                        <Globe className="h-4 w-4" />
+                      </a>
+                      <a href="#" aria-label="Facebook" className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-700 transition">
+                        <Facebook className="h-4 w-4" />
+                      </a>
+                      <a href="#" aria-label="YouTube" className="p-2 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-700 transition">
+                        <Youtube className="h-4 w-4" />
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -392,7 +470,19 @@ export default function BusinessDetailPage() {
                   <div className="text-center p-4 bg-rose-50 rounded-lg border border-rose-200">
                     <Clock className="h-8 w-8 text-primary mx-auto mb-2" />
                     <h4 className="font-semibold text-foreground">Open Hours</h4>
-                    <p className="text-sm text-muted-foreground">9:00 AM - 6:00 PM</p>
+                    {isBankCategory ? (
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium text-foreground">{weekday}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {isSunday ? 'Closed' : '09:00 AM - 05:00 PM'}
+                        </div>
+                        <div className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-semibold ${isOpenNow ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                          {isOpenNow ? 'Open now' : 'Closed now'}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">9:00 AM - 6:00 PM</p>
+                    )}
                   </div>
                   <div className="text-center p-4 bg-rose-50 rounded-lg border border-rose-200">
                     <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />

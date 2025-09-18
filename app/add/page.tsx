@@ -32,6 +32,7 @@ interface FormState {
   facebookUrl?: string
   gmbUrl?: string
   youtubeUrl?: string
+  profileUsername?: string
 }
 
 const defaultCategories = ["Restaurant", "Retail", "Services", "Healthcare", "Education", "Technology"]
@@ -161,6 +162,7 @@ export function AddBusinessForm({
     facebookUrl: "",
     gmbUrl: "",
     youtubeUrl: "",
+    profileUsername: "",
   })
 
   // Helper to slugify category to request subcategories from API
@@ -396,6 +398,7 @@ export function AddBusinessForm({
       if (form.facebookUrl) fd.append("facebookUrl", form.facebookUrl)
       if (form.gmbUrl) fd.append("gmbUrl", form.gmbUrl)
       if (form.youtubeUrl) fd.append("youtubeUrl", form.youtubeUrl)
+      if (form.profileUsername) fd.append("profileUsername", form.profileUsername)
       if (form.logoFile) {
         fd.append("logo", form.logoFile)
       }
@@ -424,6 +427,7 @@ export function AddBusinessForm({
           facebookUrl: "",
           gmbUrl: "",
           youtubeUrl: "",
+          profileUsername: "",
         })
         toast({ title: "Submitted", description: "Your business has been submitted for review (24–48 hours)." })
         setSubmitted(true)
@@ -758,6 +762,21 @@ export function AddBusinessForm({
                         className="h-12 pl-10 border-gray-300 focus:border-blue-500" 
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="profileUsername" className="text-gray-700 font-medium mb-2 block">Your Profile user name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                      <Input
+                        id="profileUsername"
+                        placeholder="e.g. johndoe"
+                        value={form.profileUsername}
+                        onChange={handleChange}
+                        className="h-12 pl-10 border-gray-300 focus:border-blue-500"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Use your trustedprofile.com username to connect this business with your profile.</p>
                   </div>
 
                   <div className="md:col-span-2">

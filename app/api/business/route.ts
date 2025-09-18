@@ -249,6 +249,7 @@ export async function GET(req: NextRequest) {
       facebookUrl: 1,
       gmbUrl: 1,
       youtubeUrl: 1,
+      profileUsername: 1,
       // Bank fields
       swiftCode: 1,
       branchCode: 1,
@@ -394,6 +395,7 @@ export async function POST(req: Request) {
       facebookUrl: String(form.get("facebookUrl") || "").trim(),
       gmbUrl: String(form.get("gmbUrl") || "").trim(),
       youtubeUrl: String(form.get("youtubeUrl") || "").trim(),
+      profileUsername: String(form.get("profileUsername") || "").trim(),
       // Bank fields
       swiftCode: String(form.get("swiftCode") || "").trim(),
       branchCode: String(form.get("branchCode") || "").trim(),

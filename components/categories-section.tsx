@@ -169,21 +169,21 @@ export function CategoriesSection() {
         </div>
 
         <div className="w-full">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {(loading ? Array.from({ length: 8 }) : visibleCategories).map((category: any, idx: number) => (
             loading ? (
               <div key={idx} className="rounded-md border bg-white dark:bg-card">
-                <div className="w-full aspect-[16/9] bg-muted animate-pulse rounded-t-md" />
-                <div className="p-6">
-                  <div className="h-4 w-24 bg-muted animate-pulse rounded mb-2" />
-                  <div className="h-3 w-20 bg-muted animate-pulse rounded" />
+                <div className="relative w-full h-48 bg-muted animate-pulse rounded-t-md" />
+                <div className="p-4">
+                  <div className="h-3.5 w-20 bg-muted animate-pulse rounded mb-2" />
+                  <div className="h-3 w-16 bg-muted animate-pulse rounded" />
                 </div>
               </div>
             ) : (
               <Link key={category.slug} href={`/category/${category.slug}`} prefetch>
-                <Card className="cursor-pointer group bg-white dark:bg-card border hover:shadow-xl transition-transform duration-300 hover:scale-105">
+                <Card className="cursor-pointer group bg-white dark:bg-card border hover:shadow-lg transition-transform duration-300 hover:scale-[1.02]">
                   <CardContent className="p-0 text-center">
-                    <div className="w-full aspect-[16/9] relative overflow-hidden rounded-t-md">
+                    <div className="relative w-full h-48 overflow-hidden rounded-t-md">
                       {category.image ? (
                         <Image
                           src={category.image}
@@ -195,15 +195,15 @@ export function CategoriesSection() {
                           loading="lazy"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-4xl bg-muted">
+                        <div className="flex h-full w-full items-center justify-center text-3xl bg-muted">
                           {category.icon || "📦"}
                         </div>
                       )}
                     </div>
-                    <div className="p-6">
-                      <h3 className="font-semibold text-foreground mb-2">{category.name}</h3>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-foreground mb-1 text-base md:text-lg">{category.name}</h3>
                       {typeof category.count === "number" && (
-                        <p className="text-sm text-muted-foreground">{category.count} businesses</p>
+                        <p className="text-xs text-muted-foreground">{category.count} businesses</p>
                       )}
                     </div>
                   </CardContent>
@@ -219,9 +219,9 @@ export function CategoriesSection() {
               className="group rounded-lg border bg-white dark:bg-card text-card-foreground shadow-sm transition-transform duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
               aria-label="View all categories"
             >
-              <div className="p-6 h-full w-full flex items-center justify-center text-center">
+              <div className="p-4 h-full w-full flex items-center justify-center text-center">
                 <div>
-                  <div className="text-2xl mb-2 font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+                  <div className="text-xl mb-1.5 font-semibold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
                     View all categories
                   </div>
                   <p className="text-xs text-muted-foreground">Explore the full list</p>
