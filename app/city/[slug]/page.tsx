@@ -1,4 +1,5 @@
 "use client"
+import { Suspense } from "react"
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { BusinessCard } from "@/components/business-card"
@@ -141,121 +142,123 @@ export default function CityPage() {
 
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="px-4 py-8">
-        <div className="mb-8">
-          <div className="mb-4">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Businesses in {cityName}</h1>
-            <p className="text-muted-foreground">
-              {loading ? "Loading..." : `${total} businesses found`}
-              {selectedCategory !== "all" && (
-                <span>
-                  {" "}in {categories.find((cat) => cat.slug === selectedCategory)?.name || selectedCategory}
-                </span>
-              )}
-              {selectedSubCategory !== "all" && (
-                <span>{" "}› {selectedSubCategory.replace(/-/g, " ")}</span>
-              )}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Category:</label>
-              <Select
-                value={selectedCategory}
-                onValueChange={(v) => { setSelectedCategory(v); setPage(1) }}
-              >
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.slug} value={category.slug}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Loading...</div>}>
+      <div className="min-h-screen bg-background">
+        <main className="px-4 py-8">
+          <div className="mb-8">
+            <div className="mb-4">
+              <h1 className="text-3xl font-bold text-foreground mb-2">Businesses in {cityName}</h1>
+              <p className="text-muted-foreground">
+                {loading ? "Loading..." : `${total} businesses found`}
+                {selectedCategory !== "all" && (
+                  <span>
+                    {" "}in {categories.find((cat) => cat.slug === selectedCategory)?.name || selectedCategory}
+                  </span>
+                )}
+                {selectedSubCategory !== "all" && (
+                  <span>{" "}› {selectedSubCategory.replace(/-/g, " ")}</span>
+                )}
+              </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Subcategory:</label>
-              <Select
-                value={selectedSubCategory}
-                onValueChange={(v) => { setSelectedSubCategory(v); setPage(1) }}
-                disabled={selectedCategory === "all" || subCategoryOptions.length === 0}
-              >
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="All Subcategories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subcategories</SelectItem>
-                  {subCategoryOptions.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s.replace(/-/g, " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Category:</label>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={(v) => { setSelectedCategory(v); setPage(1) }}
+                >
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.slug} value={category.slug}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Subcategory:</label>
+                <Select
+                  value={selectedSubCategory}
+                  onValueChange={(v) => { setSelectedSubCategory(v); setPage(1) }}
+                  disabled={selectedCategory === "all" || subCategoryOptions.length === 0}
+                >
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="All Subcategories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Subcategories</SelectItem>
+                    {subCategoryOptions.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s.replace(/-/g, " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-        </div>
 
-        {error && (
-          <div className="text-center text-red-600 mb-6">{error}</div>
-        )}
+          {error && (
+            <div className="text-center text-red-600 mb-6">{error}</div>
+          )}
 
-        {!loading && businesses.length === 0 && (
-          <div className="text-center py-12">
-            <h3 className="text-xl font-semibold text-foreground mb-2">No businesses found</h3>
-            <p className="text-muted-foreground mb-4">
-              No businesses found in {cityName}
-              {selectedCategory !== "all" && (
-                <span> for {categories.find((cat) => cat.slug === selectedCategory)?.name}</span>
-              )}
-              {selectedSubCategory !== "all" && (
-                <span> › {selectedSubCategory.replace(/-/g, " ")}</span>
-              )}
-              . Try changing filters.
-            </p>
-            <Button onClick={() => { setSelectedCategory("all"); setSelectedSubCategory("all") }} variant="outline">
-              Reset Filters
-            </Button>
+          {!loading && businesses.length === 0 && (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-foreground mb-2">No businesses found</h3>
+              <p className="text-muted-foreground mb-4">
+                No businesses found in {cityName}
+                {selectedCategory !== "all" && (
+                  <span> for {categories.find((cat) => cat.slug === selectedCategory)?.name}</span>
+                )}
+                {selectedSubCategory !== "all" && (
+                  <span> › {selectedSubCategory.replace(/-/g, " ")}</span>
+                )}
+                . Try changing filters.
+              </p>
+              <Button onClick={() => { setSelectedCategory("all"); setSelectedSubCategory("all") }} variant="outline">
+                Reset Filters
+              </Button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            {businesses.map((business) => (
+              <BusinessCard key={business.id} business={business} />
+            ))}
           </div>
-        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-          {businesses.map((business) => (
-            <BusinessCard key={business.id} business={business} />
-          ))}
-        </div>
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
 
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
+              <span className="text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
 
-            <span className="text-muted-foreground">
-              Page {page} of {totalPages}
-            </span>
-
-            <Button
-              variant="outline"
-              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={page === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        )}
-      </main>
-    </div>
+              <Button
+                variant="outline"
+                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </main>
+      </div>
+    </Suspense>
   )
 }
