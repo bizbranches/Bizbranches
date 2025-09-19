@@ -44,8 +44,8 @@ export default function SearchPage() {
   // Sidebar filter data
   const [cities, setCities] = useState<Array<{ id: string; name: string; slug: string }>>([])
   const [categoriesList, setCategoriesList] = useState<Array<{ slug: string; name: string }>>([])
+  const [showAllCategories, setShowAllCategories] = useState(Boolean(searchParams.get("allCategories")))
   const [showAllCities, setShowAllCities] = useState(false)
-  const [showAllCategories, setShowAllCategories] = useState(false)
 
   // Reset page when filters change
   useEffect(() => {
@@ -143,6 +143,11 @@ export default function SearchPage() {
     return () => { alive = false }
   }, [])
 
+  // Keep showAllCategories in sync with URL param if it changes
+  useEffect(() => {
+    setShowAllCategories(Boolean(searchParams.get("allCategories")))
+  }, [searchParams])
+
   // Helpers to update URL params
   const updateParam = (key: string, value: string) => {
     const params = new URLSearchParams(window.location.search)
@@ -175,10 +180,9 @@ export default function SearchPage() {
     <div className="min-h-screen bg-background">
       <main className="pl-2 md:pl-6 pr-0 py-4">
         <div className="mb-8">
-          {/* <h1 className="text-3xl font-bold text-foreground mb-4">
-            Search Results
-            {query && <span className="text-muted-foreground"> for "{query}"</span>}
-          </h1> */}
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+            Search Results{query && <span className="text-muted-foreground"> for "{query}"</span>}
+          </h1>
           <p className="text-muted-foreground">
             Found {total} businesses
             {city && <span> in {city.charAt(0).toUpperCase() + city.slice(1)}</span>}
@@ -186,12 +190,13 @@ export default function SearchPage() {
           </p>
         </div>
 
-        {/* Layout: 15% (filters) / 70% (list) / 15% (empty) */}
-        <div className="grid grid-cols-1 md:grid-cols-[15%_70%_15%] gap-6">
+        {/* Layout: 15% (filters) / 67% (list) / 18% (empty) */}
+        <div className="grid grid-cols-1 md:grid-cols-[15%_67%_14%] gap-6">
           {/* Sidebar - flush left */}
-          <aside>
-            <div className="bg-card border rounded-xl p-4">
-              <h3 className="text-lg font-semibold text-foreground mb-3">Category</h3>
+          <aside className="md:sticky md:top-24 self-start">
+            <div className="bg-muted/50 border rounded-2xl p-4 md:p-5 shadow-sm">
+              <p className="text-sm text-muted-foreground mb-4">Found {total} businesses</p>
+              <h3 className="text-xl font-semibold text-foreground mb-3">Category</h3>
               <div className="space-y-2">
                 {displayedCategories.map((c) => {
                   const checked = category === c.slug
@@ -199,7 +204,7 @@ export default function SearchPage() {
                     <label key={c.slug} className="flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        className="h-4 w-4"
+                        className="h-4 w-4 rounded-sm border-muted-foreground/40"
                         checked={checked}
                         onChange={(e) => updateParam('category', e.target.checked ? c.slug : '')}
                       />
@@ -216,13 +221,13 @@ export default function SearchPage() {
 
               <hr className="my-6" />
 
-              <h3 className="text-lg font-semibold text-foreground mb-3">Areas</h3>
+              <h3 className="text-xl font-semibold text-foreground mb-3">Areas</h3>
               {/* Search other cities (on top) */}
               <input
                 placeholder="Search areas..."
                 value={citySearch}
                 onChange={(e) => setCitySearch(e.target.value)}
-                className="w-full h-9 px-3 mb-3 rounded border bg-background"
+                className="w-full h-10 px-3 mb-3 rounded-md border bg-background"
               />
               {/* Top 8 cities (filtered) */}
               <div className="space-y-2 mb-3">
@@ -239,7 +244,7 @@ export default function SearchPage() {
                       <label key={ct.slug} className="flex items-center gap-2 cursor-pointer select-none">
                         <input
                           type="checkbox"
-                          className="h-4 w-4"
+                          className="h-4 w-4 rounded-sm border-muted-foreground/40"
                           checked={checked}
                           onChange={(e) => updateParam('city', e.target.checked ? ct.slug : '')}
                         />
@@ -262,7 +267,7 @@ export default function SearchPage() {
                       <label key={ct.slug} className="flex items-center gap-2 cursor-pointer select-none">
                         <input
                           type="checkbox"
-                          className="h-4 w-4"
+                          className="h-4 w-4 rounded-sm border-muted-foreground/40"
                           checked={checked}
                           onChange={(e) => updateParam('city', e.target.checked ? ct.slug : '')}
                         />
@@ -290,7 +295,7 @@ export default function SearchPage() {
             </div>
           </aside>
 
-          {/* Results - center 70% */}
+          {/* Results - center 67% */}
           <section>
             {isLoading && (
               <div className="py-16 flex items-center justify-center">
@@ -337,13 +342,13 @@ export default function SearchPage() {
             ) : null}
             {!isLoading && !error && fetchedOnce && businesses.length === 0 && (
               <div className="text-center py-12">
-                <h3 className="text-xl font-semibold text-foreground mb-2">No businesses found</h3>
-                <p className="text-muted-foreground mb-4">Try adjusting your search criteria or browse our categories.</p>
+                <h3 className="text-xl font-semibold text-foreground mb-2">Searching businesses…</h3>
+                <p className="text-muted-foreground mb-4">Hold on, we’re bringing businesses for you…</p>
               </div>
             )}
           </section>
 
-          {/* Right empty 15% column */}
+          {/* Right empty 18% column */}
           <div className="hidden md:block" />
         </div>
       </main>

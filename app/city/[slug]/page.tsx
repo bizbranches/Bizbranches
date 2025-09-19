@@ -211,20 +211,8 @@ export default function CityPage() {
 
           {!loading && businesses.length === 0 && (
             <div className="text-center py-12">
-              <h3 className="text-xl font-semibold text-foreground mb-2">No businesses found</h3>
-              <p className="text-muted-foreground mb-4">
-                No businesses found in {cityName}
-                {selectedCategory !== "all" && (
-                  <span> for {categories.find((cat) => cat.slug === selectedCategory)?.name}</span>
-                )}
-                {selectedSubCategory !== "all" && (
-                  <span> › {selectedSubCategory.replace(/-/g, " ")}</span>
-                )}
-                . Try changing filters.
-              </p>
-              <Button onClick={() => { setSelectedCategory("all"); setSelectedSubCategory("all") }} variant="outline">
-                Reset Filters
-              </Button>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Searching businesses…</h3>
+              <p className="text-muted-foreground mb-4">Hold on, we’re bringing businesses for you…</p>
             </div>
           )}
 

@@ -105,12 +105,12 @@ export default function BusinessDetailPage() {
       if (!business?.category) return
       try {
         const citySlug = String(business.city || '').toLowerCase().trim().replace(/\s+/g, '-')
-        const params = new URLSearchParams({ category: business.category, city: citySlug, limit: '2', status: 'approved' })
+        const params = new URLSearchParams({ category: business.category, city: citySlug, limit: '5', status: 'approved' })
         const res = await fetch(`/api/business?${params.toString()}`)
         if (res.ok) {
           const data = await res.json()
           const items = (data.businesses || []).filter((b: any) => (b.id || b._id?.toString?.()) !== (business.id || business._id?.toString?.()))
-          setRelated(items.slice(0, 2))
+          setRelated(items.slice(0, 5))
         }
       } catch (e) {
         console.error("Error fetching related businesses", e)
@@ -391,7 +391,7 @@ export default function BusinessDetailPage() {
             </DialogContent>
           </Dialog>
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <div className="xl:col-span-2 space-y-8">
             {/* About Section (replaces image gallery) */}
             <Card className="shadow-sm border-rose-200 bg-rose-50 rounded-xl">
@@ -500,24 +500,46 @@ export default function BusinessDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Services/Features */}
-            <Card className="shadow-lg">
-              <CardContent className="p-8">
-                <h3 className="text-xl font-bold text-foreground mb-6">Services & Features</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {[
-                    "Professional Service",
-                    "Quality Guaranteed",
-                    "24/7 Support",
-                    "Free Consultation",
-                    "Expert Team",
-                    "Competitive Pricing",
-                  ].map((feature, index) => (
-                    <div key={index} className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg">
-                      <div className="w-2 h-2 bg-primary rounded-full" />
-                      <span className="text-sm font-medium text-foreground">{feature}</span>
+            {/* Reviews Section moved up into left column to utilize space */}
+            <Card className="shadow-sm border-rose-200 bg-rose-50 rounded-xl">
+              <CardContent className="p-8" ref={reviewsRef as any}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl md:text-3xl font-bold text-foreground">Reviews</h2>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                      {ratingCount > 0 ? (
+                        <span className="text-sm text-muted-foreground">{ratingAvg.toFixed(1)} average based on {ratingCount} review{ratingCount>1?'s':''}</span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">No reviews yet. Be the first to review.</span>
+                      )}
                     </div>
-                  ))}
+                  </div>
+                  <div className="sm:self-auto">
+                    <Button onClick={() => setOpenReview(true)} className="bg-primary hover:bg-primary/90 w-full sm:w-auto">Leave Review</Button>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {reviews.length === 0 && (
+                    <div className="text-center text-muted-foreground py-8">No reviews yet.</div>
+                  )}
+                  {[...reviews]
+                    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .map((r, idx) => (
+                      <div key={idx} className="p-4 rounded-lg border bg-card">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-semibold text-foreground">{r.name || 'Anonymous'}</div>
+                          <div className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</div>
+                        </div>
+                        <div className="flex items-center gap-1 mb-2">
+                          {[1,2,3,4,5].map(n => (
+                            <Star key={n} className={`h-4 w-4 ${n <= (r.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
+                          ))}
+                        </div>
+                        <p className="text-sm text-foreground leading-relaxed">{r.comment}</p>
+                      </div>
+                    ))}
                 </div>
               </CardContent>
             </Card>
@@ -681,21 +703,28 @@ export default function BusinessDetailPage() {
               {/* Recently Added in same category and city */}
               {related.length > 0 && (
                 <Card className="shadow-sm border-rose-200 bg-rose-50 rounded-xl">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold text-foreground">Recently added in {business.category} in {business.city}</h4>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-sm md:text-base text-foreground">Recently added in {business.category} in {business.city}</h4>
                     </div>
-                    <div className="space-y-4">
-                      {related.slice(0, 2).map((b, i) => (
-                        <Link key={(b.id || b._id) + '-' + i} href={`/${b.slug || b.id || b._id}`}
-                          className="flex items-center gap-4 p-5 rounded-xl border hover:bg-muted/50 transition-colors">
-                          <div className="w-24 h-24 rounded-lg bg-white border overflow-hidden flex items-center justify-center">
+                    <div className="space-y-2">
+                      {related.slice(0, 5).map((b, i) => (
+                        <Link
+                          key={(b.id || b._id) + '-' + i}
+                          href={`/${b.slug || b.id || b._id}`}
+                          className="flex items-center gap-3 p-3 rounded-lg border bg-white/70 hover:bg-white transition-colors"
+                        >
+                          <div className="w-10 h-10 rounded bg-white border overflow-hidden flex items-center justify-center">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={b.logoUrl || (b as any).logo || b.imageUrl || "/bank-branch.png"} alt={b.name} className="w-full h-full object-contain p-2" />
+                            <img
+                              src={b.logoUrl || (b as any).logo || b.imageUrl || "/bank-branch.png"}
+                              alt={b.name}
+                              className="w-full h-full object-contain p-1"
+                            />
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-foreground">{b.name}</div>
-                            <div className="text-sm text-muted-foreground truncate">{b.city}</div>
+                            <div className="font-medium text-sm text-foreground line-clamp-2">{b.name}</div>
+                            <div className="text-xs text-muted-foreground truncate capitalize">{b.city}</div>
                           </div>
                         </Link>
                       ))}
@@ -707,56 +736,6 @@ export default function BusinessDetailPage() {
           </div>
         </div>
 
-        {/* Reviews Section - match left column width, leave right empty */}
-        <section className="mt-12 md:mt-16" ref={reviewsRef}>
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
-            <div className="xl:col-span-2">
-              <Card className="shadow-sm border-rose-200 bg-rose-50 rounded-xl">
-                <CardContent className="p-8">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
-                    <div>
-                      <h2 className="text-2xl md:text-3xl font-bold text-foreground">Reviews</h2>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        {ratingCount > 0 ? (
-                          <span className="text-sm text-muted-foreground">{ratingAvg.toFixed(1)} average based on {ratingCount} review{ratingCount>1?'s':''}</span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">No reviews yet. Be the first to review.</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="sm:self-auto">
-                      <Button onClick={() => setOpenReview(true)} className="bg-primary hover:bg-primary/90 w-full sm:w-auto">Leave Review</Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    {reviews.length === 0 && (
-                      <div className="text-center text-muted-foreground py-8">No reviews yet.</div>
-                    )}
-                    {[...reviews]
-                      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                      .map((r, idx) => (
-                        <div key={idx} className="p-4 rounded-lg border bg-card">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="font-semibold text-foreground">{r.name || 'Anonymous'}</div>
-                            <div className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</div>
-                          </div>
-                          <div className="flex items-center gap-1 mb-2">
-                            {[1,2,3,4,5].map(n => (
-                              <Star key={n} className={`h-4 w-4 ${n <= (r.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
-                            ))}
-                          </div>
-                          <p className="text-sm text-foreground leading-relaxed">{r.comment}</p>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="hidden xl:block" />
-          </div>
-        </section>
       </main>
 
     </div>

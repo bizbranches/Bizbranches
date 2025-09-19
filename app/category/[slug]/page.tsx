@@ -155,14 +155,8 @@ export default function CategoryPage() {
           </>
         ) : (
           <div className="text-center py-12">
-            <h3 className="text-xl font-semibold text-foreground mb-2">No businesses found</h3>
-            <p className="text-muted-foreground mb-4">
-              No businesses in this category
-              {selectedCity !== "all" && <span> in {selectedCity}</span>}. Try selecting a different city.
-            </p>
-            <Button onClick={() => setSelectedCity("all")} variant="outline">
-              Show All Cities
-            </Button>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Searching businesses…</h3>
+            <p className="text-muted-foreground mb-4">Hold on, we’re bringing businesses for you…</p>
           </div>
         )}
       </main>

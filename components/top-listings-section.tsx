@@ -16,7 +16,7 @@ type FeaturedCategoryCardProps = {
 
 function BusinessCard({ b }: { b: (typeof mockBusinesses)[number] }) {
   return (
-    <Link href={`/${(b as any).slug || b.id}`} className="block group rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
+    <div className="block group rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden cursor-default select-none" aria-disabled="true">
       <div className="relative">
         <Image
           src={b.image || "/placeholder.svg"}
@@ -49,7 +49,7 @@ function BusinessCard({ b }: { b: (typeof mockBusinesses)[number] }) {
           </div>
         )}
       </div>
-    </Link>
+    </div>
   )
 }
 
@@ -95,12 +95,9 @@ function FeaturedCategoryCard({ categoryName, categorySlug }: FeaturedCategoryCa
               ) : null}
             </div>
           </div>
-          <Link
-            href={`/category/${categorySlug}`}
-            className="text-xs px-3 py-1 rounded-full border border-primary/30 hover:bg-primary hover:text-primary-foreground transition"
-          >
+          <span className="text-xs px-3 py-1 rounded-full border border-primary/30 opacity-60 cursor-not-allowed select-none">
             View all
-          </Link>
+          </span>
         </div>
       </CardHeader>
       <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4" dir="ltr">
@@ -155,7 +152,7 @@ export function TopListingsSection() {
         })()}
 
         <div className="text-center mt-12">
-          <Link href="/search?status=all">
+          <Link href="/search">
             <Button size="lg" className="px-8">
               View All Listings
             </Button>

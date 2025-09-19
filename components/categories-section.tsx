@@ -179,7 +179,7 @@ export function CategoriesSection() {
                 </div>
               </div>
             ) : (
-              <Link key={category.slug} href={`/category/${category.slug}`} prefetch>
+              <Link key={category.slug} href={`/search?category=${category.slug}`} prefetch>
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
                   <CardContent className="p-0">
                     <div className="relative h-40">

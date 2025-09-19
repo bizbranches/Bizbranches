@@ -20,11 +20,8 @@ export function Header() {
             <Link href="/" className="hover:text-accent transition-colors">
               Home
             </Link>
-            <Link href="/add" className="hover:text-accent transition-colors">
-              Add Business
-            </Link>
-            <Link href="#faq" className="hover:text-accent transition-colors">
-              FAQs
+            <Link href="/search?allCategories=1" className="hover:text-accent transition-colors">
+            Categories
             </Link>
           </nav>
 
@@ -58,11 +55,8 @@ export function Header() {
             <Link href="/" onClick={closeMenu} className="hover:text-accent transition-colors">
               Home
             </Link>
-            <Link href="/add" onClick={closeMenu} className="hover:text-accent transition-colors">
-              Add Business
-            </Link>
-            <Link href="#faq" onClick={closeMenu} className="hover:text-accent transition-colors">
-              FAQs
+            <Link href="/search?allCategories=1" onClick={closeMenu} className="hover:text-accent transition-colors">
+              Category
             </Link>
             <div className="pt-2 flex flex-col gap-2">
               <Button asChild variant="secondary" onClick={closeMenu}>

@@ -1,15 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState, useEffect, useRef } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { ChevronsUpDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
-// Compact top filters/search bar
+// Global top search bar (single expanded search field)
 export function GlobalTopbar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -34,101 +30,104 @@ export function GlobalTopbar() {
   }, [pathname])
 
   const [q, setQ] = useState<string>(searchParams.get("q") || "")
-  const [city, setCity] = useState<string>(searchParams.get("city") || "all")
-  const [category, setCategory] = useState<string>(searchParams.get("category") || "all")
-  const [subcategory, setSubcategory] = useState<string>(searchParams.get("subcategory") || "all")
 
-  const [categories, setCategories] = useState<Array<{ slug: string; name: string }>>([])
-  const [subcategories, setSubcategories] = useState<string[]>([])
-  const [citiesList, setCitiesList] = useState<Array<{ value: string; label: string }>>([])
-  const [loadingCities, setLoadingCities] = useState(true)
-  const [cityOpen, setCityOpen] = useState(false)
-  const [cityQuery, setCityQuery] = useState("")
+  // Autocomplete state
+  const [businessSuggestions, setBusinessSuggestions] = useState<any[]>([])
+  const [categorySuggestions, setCategorySuggestions] = useState<any[]>([])
+  const [combinedSuggestions, setCombinedSuggestions] = useState<Array<{ type: 'business' | 'category'; data: any }>>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(-1)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Load categories
+  // Debounced fetch for suggestions
   useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch(`/api/categories?limit=200`, { cache: "no-store" })
-        const data = await res.json().catch(() => ({}))
-        const list = Array.isArray(data?.categories) ? data.categories : []
-        if (alive) setCategories(list.map((c: any) => ({ slug: c.slug, name: c.name || c.slug })))
-      } catch {
-        if (alive) setCategories([])
+    const timer = setTimeout(async () => {
+      const text = q.trim()
+      if (!text) {
+        setBusinessSuggestions([])
+        setCategorySuggestions([])
+        setCombinedSuggestions([])
+        setShowSuggestions(false)
+        setSelectedIndex(-1)
+        return
       }
-    })()
-    return () => { alive = false }
+      try {
+        const params = new URLSearchParams({ q: text, limit: '6' })
+        // Use regex mode so it works even if text index isn't present
+        const [bRes, cRes] = await Promise.all([
+          fetch(`/api/business?${params.toString()}&searchMode=regex&suggest=1`, { cache: 'no-store' }),
+          fetch(`/api/categories?q=${encodeURIComponent(text)}&limit=6`, { cache: 'no-store' }),
+        ])
+        const bJson = bRes.ok ? await bRes.json() : { businesses: [] }
+        const cJson = cRes.ok ? await cRes.json() : { categories: [] }
+        const b = (bJson?.businesses || []) as any[]
+        const c = (cJson?.categories || []) as any[]
+        setBusinessSuggestions(b)
+        setCategorySuggestions(c)
+        const combined: Array<{ type: 'business' | 'category'; data: any }> = [
+          ...b.map((x) => ({ type: 'business' as const, data: x })),
+          ...c.map((x) => ({ type: 'category' as const, data: x })),
+        ]
+        setCombinedSuggestions(combined)
+        setShowSuggestions(combined.length > 0)
+        setSelectedIndex(-1)
+      } catch {
+        setBusinessSuggestions([])
+        setCategorySuggestions([])
+        setCombinedSuggestions([])
+        setShowSuggestions(false)
+        setSelectedIndex(-1)
+      }
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [q])
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (dropdownRef.current && !dropdownRef.current.contains(t) && inputRef.current && !inputRef.current.contains(t)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
   }, [])
-
-  // Load cities from API (remove hardcoded list) with session cache for faster open
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        setLoadingCities(true)
-        // try session cache first
-        try {
-          const raw = sessionStorage.getItem("topbar:cities")
-          if (raw) {
-            const parsed = JSON.parse(raw)
-            if (Array.isArray(parsed?.data)) setCitiesList(parsed.data)
-          }
-        } catch {}
-        const res = await fetch('/api/cities', { cache: 'no-store' })
-        const data = await res.json().catch(() => ({}))
-        const list: Array<{ id: string; name: string }> = Array.isArray(data?.cities) ? data.cities : []
-        if (alive) {
-          const mapped = list.map(c => ({ value: c.name.toLowerCase().replace(/\s+/g, '-'), label: c.name }))
-          setCitiesList(mapped)
-          try { sessionStorage.setItem("topbar:cities", JSON.stringify({ data: mapped })) } catch {}
-        }
-      } catch {
-        if (alive) setCitiesList([])
-      } finally {
-        if (alive) setLoadingCities(false)
-      }
-    })()
-    return () => { alive = false }
-  }, [])
-
-  // Load subcategories when category changes
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      setSubcategory("all")
-      setSubcategories([])
-      if (!category || category === "all") return
-      try {
-        const res = await fetch(`/api/categories?slug=${encodeURIComponent(category)}`, { cache: "no-store" })
-        const data = await res.json().catch(() => ({}))
-        const list: string[] = Array.isArray(data?.category?.subcategories)
-          ? data.category.subcategories.map((s: any) => s?.slug || s?.name).filter(Boolean)
-          : []
-        if (alive) setSubcategories(list)
-      } catch {
-        if (alive) setSubcategories([])
-      }
-    })()
-    return () => { alive = false }
-  }, [category])
 
   const apply = (e?: React.FormEvent) => {
     e?.preventDefault()
     const params = new URLSearchParams()
     if (q.trim()) params.set("q", q.trim())
-    if (city !== "all") params.set("city", city)
-    if (category !== "all") params.set("category", category)
-    if (subcategory !== "all") params.set("subcategory", subcategory)
+    const url = params.toString() ? `/search?${params.toString()}` : "/search"
+    router.push(url)
+    setShowSuggestions(false)
+  }
 
-    // If on a city page, prefer staying on it
-    if (pathname?.startsWith("/city/")) {
-      const base = pathname
-      const url = params.toString() ? `${base}?${params.toString()}` : base
-      router.push(url)
-    } else {
-      const url = params.toString() ? `/search?${params.toString()}` : "/search"
-      router.push(url)
+  // Keyboard navigation in dropdown
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || combinedSuggestions.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedIndex((i) => (i + 1) % combinedSuggestions.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedIndex((i) => (i - 1 + combinedSuggestions.length) % combinedSuggestions.length)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (selectedIndex >= 0 && selectedIndex < combinedSuggestions.length) {
+        const sel = combinedSuggestions[selectedIndex]
+        if (sel.type === 'business') {
+          router.push(`/${sel.data.slug || sel.data.id}`)
+        } else {
+          router.push(`/category/${sel.data.slug}`)
+        }
+        setShowSuggestions(false)
+      } else {
+        apply()
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false)
     }
   }
 
@@ -136,66 +135,86 @@ export function GlobalTopbar() {
 
   return (
     <div className="w-full border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50">
-      <form onSubmit={apply} className="mx-auto w-full md:w-[70%] px-3 py-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex-1 min-w-0">
-            <Input placeholder="Search businesses or categories..." value={q} onChange={(e) => setQ(e.target.value)} className="w-full" />
+      <form onSubmit={apply} className="mx-auto w-full md:w-[70%] px-3 py-2 relative">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 min-w-0">
+            <Input
+              ref={inputRef}
+              placeholder="Search businesses, categories, or cities..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onFocus={() => setShowSuggestions(combinedSuggestions.length > 0)}
+              onKeyDown={onKeyDown}
+              className="w-full h-11 md:h-12 text-base md:text-lg pr-12"
+            />
+            {/* small search icon button inside input on the right */}
+            <button
+              type="submit"
+              aria-label="Search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center hover:opacity-95"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M10.5 3a7.5 7.5 0 015.916 12.157l3.713 3.714a.75.75 0 11-1.06 1.06l-3.714-3.713A7.5 7.5 0 1110.5 3zm0 1.5a6 6 0 100 12 6 6 0 000-12z" clipRule="evenodd" />
+              </svg>
+            </button>
+
+            {showSuggestions && combinedSuggestions.length > 0 && (
+              <div ref={dropdownRef} className="absolute z-50 mt-1 w-full rounded-md border bg-card shadow-lg overflow-hidden">
+                {/* Businesses */}
+                {businessSuggestions.length > 0 && (
+                  <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground">Businesses</div>
+                )}
+                {businessSuggestions.map((b, idx) => {
+                  const gi = idx
+                  const active = selectedIndex === gi
+                  return (
+                    <div
+                      key={`b-${b.id || b._id || b.slug || idx}`}
+                      className={`px-3 py-2 cursor-pointer border-t first:border-t-0 ${active ? 'bg-muted' : 'bg-card'} hover:bg-muted transition-colors`}
+                      onMouseEnter={() => setSelectedIndex(gi)}
+                      onMouseDown={(e) => { e.preventDefault(); router.push(`/${b.slug || b.id || b._id}`); setShowSuggestions(false) }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={b.image || b.logoUrl || "/placeholder.svg"} alt={b.name} className="w-8 h-8 rounded object-cover" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-foreground truncate">{b.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{b.category} • {String(b.city || '').charAt(0).toUpperCase() + String(b.city || '').slice(1)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Categories */}
+                {categorySuggestions.length > 0 && (
+                  <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground">Categories</div>
+                )}
+                {categorySuggestions.map((c, i) => {
+                  const gi = businessSuggestions.length + i
+                  const active = selectedIndex === gi
+                  return (
+                    <div
+                      key={`c-${c.slug || i}`}
+                      className={`px-3 py-2 cursor-pointer border-t ${active ? 'bg-muted' : 'bg-card'} hover:bg-muted transition-colors`}
+                      onMouseEnter={() => setSelectedIndex(gi)}
+                      onMouseDown={(e) => { e.preventDefault(); router.push(`/category/${c.slug}`); setShowSuggestions(false) }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-base">{c.icon || '⭐'}</div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-foreground truncate">{c.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">View category</div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
-          <Popover open={cityOpen} onOpenChange={setCityOpen}>
-            <PopoverTrigger asChild>
-              <Button type="button" variant="outline" animated={false} className="w-full sm:w-[220px] justify-between">
-                <span className="truncate">{city !== "all" ? (citiesList.find(x => x.value === city)?.label || city) : (loadingCities ? "Loading cities..." : "City")}</span>
-                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-              <Command shouldFilter={false}>
-                <CommandInput placeholder="Search city..." value={cityQuery} onValueChange={setCityQuery} className="h-9" />
-                <CommandEmpty>{loadingCities ? "Loading..." : "No city found."}</CommandEmpty>
-                <CommandList>
-                  <CommandGroup>
-                    {/* Render at most 100 items to keep it snappy */}
-                    {citiesList
-                      .filter(c => cityQuery.trim() === "" || c.label.toLowerCase().includes(cityQuery.trim().toLowerCase()))
-                      .slice(0, 100)
-                      .map((c) => (
-                        <CommandItem
-                          key={c.value}
-                          value={c.value}
-                          onSelect={(val) => { setCity(val); setCityOpen(false); setCityQuery("") }}
-                        >
-                          {c.label}
-                        </CommandItem>
-                      ))}
-                    <CommandItem value="all" onSelect={() => { setCity("all"); setCityOpen(false); setCityQuery("") }}>All Cities</CommandItem>
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-full sm:w-[200px]"><SelectValue placeholder="Category" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={subcategory} onValueChange={setSubcategory} disabled={category === "all" || subcategories.length === 0}>
-            <SelectTrigger className="w-full sm:w-[220px]"><SelectValue placeholder="Subcategory" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Subcategories</SelectItem>
-              {subcategories.map((s) => (
-                <SelectItem key={s} value={s}>{s.replace(/-/g, " ")}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button type="submit" variant="default" animated={false} className="w-full sm:w-auto">Apply</Button>
+          {/* Visible text button removed as requested; icon button remains inside the input */}
         </div>
       </form>
     </div>
