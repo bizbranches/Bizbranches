@@ -28,11 +28,12 @@ export default function SearchPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [businesses, setBusinesses] = useState<Business[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [fetchedOnce, setFetchedOnce] = useState(false)
 
   const query = searchParams.get("q") || ""
   const city = searchParams.get("city") || ""
@@ -56,8 +57,9 @@ export default function SearchPage() {
     const controller = new AbortController()
     const fetchData = async () => {
       try {
+        setError("")
         setIsLoading(true)
-        setError(null)
+        setFetchedOnce(false)
         const params = new URLSearchParams()
         params.set("page", String(currentPage))
         params.set("limit", String(limit))
@@ -98,8 +100,12 @@ export default function SearchPage() {
       } catch (e: any) {
         if (e?.name === 'AbortError') return
         setError(e?.message || "Failed to load listings")
+        setBusinesses([])
+        setTotal(0)
+        setTotalPages(1)
       } finally {
         setIsLoading(false)
+        setFetchedOnce(true)
       }
     }
     fetchData()
@@ -167,12 +173,12 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="pl-2 md:pl-6 pr-0 py-8">
+      <main className="pl-2 md:pl-6 pr-0 py-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-4">
+          {/* <h1 className="text-3xl font-bold text-foreground mb-4">
             Search Results
             {query && <span className="text-muted-foreground"> for "{query}"</span>}
-          </h1>
+          </h1> */}
           <p className="text-muted-foreground">
             Found {total} businesses
             {city && <span> in {city.charAt(0).toUpperCase() + city.slice(1)}</span>}
@@ -218,41 +224,68 @@ export default function SearchPage() {
                 onChange={(e) => setCitySearch(e.target.value)}
                 className="w-full h-9 px-3 mb-3 rounded border bg-background"
               />
-              {/* Top 8 cities */}
+              {/* Top 8 cities (filtered) */}
               <div className="space-y-2 mb-3">
-                {topCities.map((ct) => {
-                  const checked = city === ct.slug || city.toLowerCase() === ct.name.toLowerCase()
-                  return (
-                    <label key={ct.slug} className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={checked}
-                        onChange={(e) => updateParam('city', e.target.checked ? ct.slug : '')}
-                      />
-                      <span className="text-sm text-foreground">{ct.name}</span>
-                    </label>
-                  )
-                })}
+                {topCities
+                  .filter((ct) => {
+                    const q = citySearch.trim().toLowerCase()
+                    if (!q) return true
+                    const slug = (ct as any).slug ? String((ct as any).slug) : String(ct.name)
+                    return slug.toLowerCase().includes(q) || String(ct.name).toLowerCase().includes(q)
+                  })
+                  .map((ct) => {
+                    const checked = city === ct.slug || city.toLowerCase() === ct.name.toLowerCase()
+                    return (
+                      <label key={ct.slug} className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={checked}
+                          onChange={(e) => updateParam('city', e.target.checked ? ct.slug : '')}
+                        />
+                        <span className="text-sm text-foreground">{ct.name}</span>
+                      </label>
+                    )
+                  })}
               </div>
               <div className="space-y-2 max-h-60 overflow-auto pr-1">
-                {remainingCities.map((ct) => {
-                  const checked = city === ct.slug || city.toLowerCase() === ct.name.toLowerCase()
-                  return (
-                    <label key={ct.slug} className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={checked}
-                        onChange={(e) => updateParam('city', e.target.checked ? ct.slug : '')}
-                      />
-                      <span className="text-sm text-foreground">{ct.name}</span>
-                    </label>
-                  )
-                })}
-                {remainingCities.length === 0 && (
-                  <div className="text-xs text-muted-foreground">No matches</div>
-                )}
+                {remainingCities
+                  .filter((ct) => {
+                    const q = citySearch.trim().toLowerCase()
+                    if (!q) return true
+                    const slug = (ct as any).slug ? String((ct as any).slug) : String(ct.name)
+                    return slug.toLowerCase().includes(q) || String(ct.name).toLowerCase().includes(q)
+                  })
+                  .map((ct) => {
+                    const checked = city === ct.slug || city.toLowerCase() === ct.name.toLowerCase()
+                    return (
+                      <label key={ct.slug} className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={checked}
+                          onChange={(e) => updateParam('city', e.target.checked ? ct.slug : '')}
+                        />
+                        <span className="text-sm text-foreground">{ct.name}</span>
+                      </label>
+                    )
+                  })}
+                {(() => {
+                  const q = citySearch.trim().toLowerCase()
+                  const anyTop = topCities.some((ct) => {
+                    if (!q) return true
+                    const slug = (ct as any).slug ? String((ct as any).slug) : String(ct.name)
+                    return slug.toLowerCase().includes(q) || String(ct.name).toLowerCase().includes(q)
+                  })
+                  const anyRemaining = remainingCities.some((ct) => {
+                    if (!q) return true
+                    const slug = (ct as any).slug ? String((ct as any).slug) : String(ct.name)
+                    return slug.toLowerCase().includes(q) || String(ct.name).toLowerCase().includes(q)
+                  })
+                  return !anyTop && !anyRemaining ? (
+                    <div className="text-xs text-muted-foreground">No matches</div>
+                  ) : null
+                })()}
               </div>
             </div>
           </aside>
@@ -301,13 +334,11 @@ export default function SearchPage() {
                   </div>
                 )}
               </>
-            ) : (
+            ) : null}
+            {!isLoading && !error && fetchedOnce && businesses.length === 0 && (
               <div className="text-center py-12">
                 <h3 className="text-xl font-semibold text-foreground mb-2">No businesses found</h3>
-                <p className="text-muted-foreground mb-4">
-                  Try adjusting your search criteria or browse our categories.
-                </p>
-                {/* Back button removed as requested */}
+                <p className="text-muted-foreground mb-4">Try adjusting your search criteria or browse our categories.</p>
               </div>
             )}
           </section>

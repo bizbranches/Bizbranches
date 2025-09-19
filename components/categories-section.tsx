@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import Image from "next/image"
 
 type Category = { name: string; slug: string; count?: number; icon?: string; image?: string }
 
@@ -169,11 +168,11 @@ export function CategoriesSection() {
         </div>
 
         <div className="w-full">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {(loading ? Array.from({ length: 8 }) : visibleCategories).map((category: any, idx: number) => (
             loading ? (
               <div key={idx} className="rounded-md border bg-white dark:bg-card">
-                <div className="relative w-full h-48 bg-muted animate-pulse rounded-t-md" />
+                <div className="relative w-full h-40 bg-muted animate-pulse rounded-t-md" />
                 <div className="p-4">
                   <div className="h-3.5 w-20 bg-muted animate-pulse rounded mb-2" />
                   <div className="h-3 w-16 bg-muted animate-pulse rounded" />
@@ -181,30 +180,28 @@ export function CategoriesSection() {
               </div>
             ) : (
               <Link key={category.slug} href={`/category/${category.slug}`} prefetch>
-                <Card className="cursor-pointer group bg-white dark:bg-card border hover:shadow-lg transition-transform duration-300 hover:scale-[1.02]">
-                  <CardContent className="p-0 text-center">
-                    <div className="relative w-full h-48 overflow-hidden rounded-t-md">
+                <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+                  <CardContent className="p-0">
+                    <div className="relative h-40">
                       {category.image ? (
-                        <Image
+                        <img
                           src={category.image}
                           alt={`${category.name} category`}
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          priority={false}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           loading="lazy"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-3xl bg-muted">
-                          {category.icon || "📦"}
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <span className="text-3xl">{category.icon || "📦"}</span>
                         </div>
                       )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-foreground mb-1 text-base md:text-lg">{category.name}</h3>
-                      {typeof category.count === "number" && (
-                        <p className="text-xs text-muted-foreground">{category.count} businesses</p>
-                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-3 left-3 text-white">
+                        <h3 className="text-lg md:text-xl font-bold">{category.name}</h3>
+                        {typeof category.count === "number" && (
+                          <p className="text-xs md:text-sm opacity-90">{category.count} businesses</p>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
