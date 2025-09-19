@@ -26,7 +26,9 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         {/* Global route loader overlay and controller */}
         <RouteLoaderOverlay />
-        <RouteNavigationController />
+        <Suspense fallback={null}>
+          <RouteNavigationController />
+        </Suspense>
         <Header />
         <Suspense fallback={null}>
           <GlobalTopbar />
