@@ -9,7 +9,7 @@ export const mockBusinesses = [
     whatsapp: "+92-300-1234567",
     email: "info@almadinarest.com",
     description: "Authentic Pakistani cuisine with traditional flavors. Family-friendly dining experience.",
-    image: "/pakistani-restaurant-interior.png",
+    image: "/pakistani-restaurant-interior.webp",
   },
   {
     id: "2",
@@ -20,7 +20,7 @@ export const mockBusinesses = [
     phone: "+92-42-35678901",
     email: "contact@cityhospital.pk",
     description: "Modern healthcare facility with experienced doctors and advanced medical equipment.",
-    image: "/modern-hospital.png",
+    image: "/modern-hospital.webp",
   },
   {
     id: "3",
@@ -31,7 +31,7 @@ export const mockBusinesses = [
     phone: "+92-51-23456789",
     email: "hello@techsolutions.pk",
     description: "Leading IT services company providing software development and digital solutions.",
-    image: "/modern-tech-office.png",
+    image: "/modern-tech-office.webp",
   },
   {
     id: "4",
@@ -42,7 +42,7 @@ export const mockBusinesses = [
     phone: "+92-51-34567890",
     email: "admissions@greenvalley.edu.pk",
     description: "Quality education from nursery to matriculation with modern teaching methods.",
-    image: "/school-building-with-playground.png",
+    image: "/school-building-with-playground.webp",
   },
   {
     id: "5",
@@ -54,7 +54,7 @@ export const mockBusinesses = [
     whatsapp: "+92-300-9876543",
     email: "service@autocare.pk",
     description: "Complete automotive services including repairs, maintenance, and spare parts.",
-    image: "/car-repair-garage.png",
+    image: "/car-repair-garage.webp",
   },
   {
     id: "6",
@@ -65,7 +65,7 @@ export const mockBusinesses = [
     phone: "+92-21-45678901",
     email: "info@fashionplaza.pk",
     description: "Latest fashion trends and clothing for men, women, and children.",
-    image: "/clothing-store-interior.png",
+    image: "/clothing-store-interior.webp",
   },
   {
     id: "7",
@@ -77,7 +77,7 @@ export const mockBusinesses = [
     whatsapp: "+92-300-5555555",
     email: "bookings@beautylounge.pk",
     description: "Premium beauty services including hair styling, skincare, and spa treatments.",
-    image: "/modern-beauty-salon.png",
+    image: "/modern-beauty-salon.webp",
   },
   {
     id: "8",
@@ -88,7 +88,7 @@ export const mockBusinesses = [
     phone: "+92-51-56789012",
     email: "sales@primeproperties.pk",
     description: "Trusted real estate agency for buying, selling, and renting properties.",
-    image: "/real-estate-office.png",
+    image: "/real-estate-office.webp",
   },
   {
     id: "9",
@@ -99,7 +99,7 @@ export const mockBusinesses = [
     phone: "+92-21-67890123",
     email: "contact@legalassociates.pk",
     description: "Professional legal services for corporate and individual clients.",
-    image: "/law-office-interior.png",
+    image: "/law-office-interior.webp",
   },
   {
     id: "10",
@@ -111,7 +111,7 @@ export const mockBusinesses = [
     whatsapp: "+92-300-7777777",
     email: "projects@buildright.pk",
     description: "Quality construction services for residential and commercial projects.",
-    image: "/construction-company-office.png",
+    image: "/construction-company-office.webp",
   },
   {
     id: "11",
@@ -122,7 +122,7 @@ export const mockBusinesses = [
     phone: "+92-42-78901234",
     email: "bookings@travelworld.pk",
     description: "Complete travel solutions including domestic and international tour packages.",
-    image: "/travel-agency-office.png",
+    image: "/travel-agency-office.webp",
   },
   {
     id: "12",
@@ -133,7 +133,7 @@ export const mockBusinesses = [
     phone: "+92-51-89012345",
     email: "info@financialadvisors.pk",
     description: "Expert financial planning and investment advisory services.",
-    image: "/financial-advisor-office.png",
+    image: "/financial-advisor-office.webp",
   },
 ]
 
