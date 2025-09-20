@@ -23,6 +23,7 @@ function BusinessCard({ b }: { b: (typeof mockBusinesses)[number] }) {
           alt={b.name}
           width={400}
           height={200}
+          unoptimized
           className="w-full h-32 object-cover"
         />
         <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs">Featured</Badge>
