@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button"
 import BusinessListItem from "@/components/business-list-item"
 import { useSearchParams, useRouter } from "next/navigation"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import Link from "next/link"
 import FancyLoader from "@/components/fancy-loader"
 
@@ -29,17 +29,19 @@ export default function SearchPage() {
   const searchParams = useSearchParams()
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const [fetchedOnce, setFetchedOnce] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const query = searchParams.get("q") || ""
   const city = searchParams.get("city") || ""
   const category = searchParams.get("category") || ""
   const status = searchParams.get("status") || ""
-  const limit = 12
+  const limit = 20
 
   // Sidebar filter data
   const [cities, setCities] = useState<Array<{ id: string; name: string; slug: string }>>([])
@@ -50,6 +52,7 @@ export default function SearchPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
+    setBusinesses([])
   }, [query, city, category])
 
   // Fetch from API when filters or page change
@@ -58,8 +61,10 @@ export default function SearchPage() {
     const fetchData = async () => {
       try {
         setError("")
-        setIsLoading(true)
-        setFetchedOnce(false)
+        const initialLoad = currentPage === 1
+        setIsLoading(initialLoad)
+        setIsFetchingMore(!initialLoad)
+        if (initialLoad) setFetchedOnce(false)
         const params = new URLSearchParams()
         params.set("page", String(currentPage))
         params.set("limit", String(limit))
@@ -94,23 +99,43 @@ export default function SearchPage() {
             status: b.status,
           }
         })
-        setBusinesses(items)
+        setBusinesses((prev) => currentPage === 1 ? items : prev.concat(items))
         setTotal(data.pagination?.total || items.length)
         setTotalPages(data.pagination?.pages || 1)
       } catch (e: any) {
         if (e?.name === 'AbortError') return
         setError(e?.message || "Failed to load listings")
-        setBusinesses([])
+        if (currentPage === 1) setBusinesses([])
         setTotal(0)
         setTotalPages(1)
       } finally {
         setIsLoading(false)
+        setIsFetchingMore(false)
         setFetchedOnce(true)
       }
     }
     fetchData()
     return () => controller.abort()
   }, [query, city, category, status, currentPage])
+
+  const hasMore = useMemo(() => currentPage < totalPages, [currentPage, totalPages])
+
+  // Infinite scroll sentinel observer
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver((entries) => {
+      const first = entries[0]
+      if (first.isIntersecting) {
+        // Avoid triggering while loading
+        if (!isLoading && !isFetchingMore && hasMore) {
+          setCurrentPage((p) => (p < totalPages ? p + 1 : p))
+        }
+      }
+    }, { root: null, rootMargin: '300px', threshold: 0 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, isLoading, isFetchingMore, totalPages])
 
   // Load cities and categories for sidebar filters
   useEffect(() => {
@@ -314,28 +339,11 @@ export default function SearchPage() {
                     </div>
                   ))}
                 </div>
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex justify-center items-center space-x-2 mt-6">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-
-                    <span className="text-muted-foreground">
-                      Page {currentPage} of {totalPages} • {total} result{total !== 1 ? 's' : ''}
-                    </span>
-
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
+                {/* Infinite scroll sentinel */}
+                <div ref={sentinelRef} className="h-10" />
+                {(isFetchingMore || (hasMore && !isLoading)) && (
+                  <div className="flex justify-center items-center py-6">
+                    <FancyLoader />
                   </div>
                 )}
               </>
