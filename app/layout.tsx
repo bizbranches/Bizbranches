@@ -9,6 +9,7 @@ import GlobalContainer from '@/components/global-container'
 import { Suspense } from 'react'
 import RouteLoaderOverlay from "@/components/route-loader-overlay"
 import RouteNavigationController from "@/components/route-navigation-controller"
+import Script from 'next/script'
 
 export const metadata: Metadata = {
   title: 'BizBranches',
@@ -23,6 +24,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      {/* Google AdSense: load once globally */}
+      <Script
+        id="adsbygoogle-init"
+        async
+        strategy="afterInteractive"
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4083132987699578"
+        crossOrigin="anonymous"
+      />
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         {/* Global route loader overlay and controller */}
         <RouteLoaderOverlay />

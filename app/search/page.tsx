@@ -24,6 +24,29 @@ type Business = {
   status?: "pending" | "approved" | "rejected"
 }
 
+// Reusable AdSense slot component that safely initializes each instance
+function AdsSlot({ k }: { k?: string }) {
+  useEffect(() => {
+    try {
+      // @ts-ignore
+      (window.adsbygoogle = window.adsbygoogle || []).push({})
+    } catch {}
+  }, [])
+  return (
+    <div className="my-4">
+      <ins
+        className="adsbygoogle"
+        style={{ display: 'block' }}
+        data-ad-client="ca-pub-4083132987699578"
+        data-ad-slot="3877186043"
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+        key={k}
+      />
+    </div>
+  )
+}
+
 export default function SearchPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -120,6 +143,14 @@ export default function SearchPage() {
 
   const hasMore = useMemo(() => currentPage < totalPages, [currentPage, totalPages])
 
+  // Initialize AdSense on mount
+  useEffect(() => {
+    try {
+      // @ts-ignore
+      (window.adsbygoogle = window.adsbygoogle || []).push({})
+    } catch {}
+  }, [])
+
   // Infinite scroll sentinel observer
   useEffect(() => {
     const el = sentinelRef.current
@@ -201,6 +232,22 @@ export default function SearchPage() {
 
   const [citySearch, setCitySearch] = useState("")
 
+  // Prepare interleaved list with ads after every 3 items
+  const interleavedList = useMemo(() => {
+    const elements: React.ReactNode[] = []
+    businesses.forEach((b, idx) => {
+      elements.push(
+        <div key={b.id} className="p-4 md:p-5">
+          <BusinessListItem business={b} compact />
+        </div>
+      )
+      if ((idx + 1) % 3 === 0) {
+        elements.push(<AdsSlot key={`ad-${currentPage}-${idx}`} />)
+      }
+    })
+    return elements
+  }, [businesses, currentPage])
+
   return (
     <div className="min-h-screen bg-background">
       <main className="pl-2 md:pl-6 pr-0 py-4">
@@ -213,6 +260,18 @@ export default function SearchPage() {
             {city && <span> in {city.charAt(0).toUpperCase() + city.slice(1)}</span>}
             {category && <span> in {category.replace("-", " ")}</span>}
           </p>
+        </div>
+
+        {/* AdSense: below the search field/header section */}
+        <div className="w-full px-0 md:px-0 lg:px-0 py-4">
+          <ins
+            className="adsbygoogle"
+            style={{ display: 'block' }}
+            data-ad-client="ca-pub-4083132987699578"
+            data-ad-slot="3877186043"
+            data-ad-format="auto"
+            data-full-width-responsive="true"
+          />
         </div>
 
         {/* Layout: 15% (filters) / 67% (list) / 18% (empty) */}
@@ -333,11 +392,7 @@ export default function SearchPage() {
             {!isLoading && !error && businesses.length > 0 ? (
               <>
                 <div className="divide-y rounded-lg border bg-card">
-                  {businesses.map((b) => (
-                    <div key={b.id} className="p-4 md:p-5">
-                      <BusinessListItem business={b} compact />
-                    </div>
-                  ))}
+                  {interleavedList}
                 </div>
                 {/* Infinite scroll sentinel */}
                 <div ref={sentinelRef} className="h-10" />
@@ -358,6 +413,18 @@ export default function SearchPage() {
 
           {/* Right empty 18% column */}
           <div className="hidden md:block" />
+        </div>
+
+        {/* AdSense: above footer */}
+        <div className="w-full px-0 md:px-0 lg:px-0 py-8">
+          <ins
+            className="adsbygoogle"
+            style={{ display: 'block' }}
+            data-ad-client="ca-pub-4083132987699578"
+            data-ad-slot="3877186043"
+            data-ad-format="auto"
+            data-full-width-responsive="true"
+          />
         </div>
       </main>
     </div>

@@ -139,6 +139,15 @@ export default function BusinessDetailPage() {
     fetchReviewsNow()
   }, [businessId])
 
+  useEffect(() => {
+    try {
+      // @ts-ignore
+      (window.adsbygoogle = window.adsbygoogle || []).push({})
+    } catch (e) {
+      // ignore if adsbygoogle not yet available
+    }
+  }, [businessId])
+
   const submitReview = async () => {
     try {
       setSubmitting(true)
@@ -213,7 +222,17 @@ export default function BusinessDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 to-white overflow-x-hidden">
-
+      {/* AdSense: below navbar, above business name/logo header */}
+      <div className="w-full px-4 md:px-8 lg:px-12 pt-4">
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-client="ca-pub-4083132987699578"
+          data-ad-slot="3877186043"
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      </div>
       <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-white border-b overflow-x-hidden">
         <div className="w-full px-4 md:px-8 lg:px-12 py-8">
           <div className="flex flex-col md:flex-row items-stretch gap-4 md:gap-6 min-h-[9rem] md:min-h-[11rem]">
@@ -391,6 +410,19 @@ export default function BusinessDetailPage() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* AdSense: below breadcrumb buttons row */}
+        <div className="w-full px-0 md:px-0 lg:px-0 py-4">
+          <ins
+            className="adsbygoogle"
+            style={{ display: 'block' }}
+            data-ad-client="ca-pub-4083132987699578"
+            data-ad-slot="3877186043"
+            data-ad-format="auto"
+            data-full-width-responsive="true"
+          />
+        </div>
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <div className="xl:col-span-2 space-y-8">
             {/* About Section (replaces image gallery) */}
@@ -499,6 +531,18 @@ export default function BusinessDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* AdSense: directly below About section */}
+            <div className="w-full py-2">
+              <ins
+                className="adsbygoogle"
+                style={{ display: 'block' }}
+                data-ad-client="ca-pub-4083132987699578"
+                data-ad-slot="3877186043"
+                data-ad-format="auto"
+                data-full-width-responsive="true"
+              />
+            </div>
 
             {/* Reviews Section moved up into left column to utilize space */}
             <Card className="shadow-sm border-rose-200 bg-rose-50 rounded-xl">
