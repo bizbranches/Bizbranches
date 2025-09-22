@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://bizbranches.pk/sitemap.xml
+Sitemap: https://bizbranches-theta.vercel.app/sitemap.xml
