@@ -14,7 +14,7 @@ import Script from 'next/script'
 export const metadata: Metadata = {
   title: 'BizBranches',
   description: 'BizBranches - Discover and list businesses across Pakistan',
-  // generator: 'v0.app',
+   
 }
 
 export default function RootLayout({
@@ -24,14 +24,33 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* Google AdSense: load once globally */}
-      <Script
-        id="adsbygoogle-init"
-        async
-        strategy="afterInteractive"
-        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4083132987699578"
-        crossOrigin="anonymous"
-      />
+      <head>
+
+        <meta name="google-site-verification" content="_3hQRO7vbjKeReRG8goNUOrswAH0TPyjkEOg8ddoEgE" />
+
+           {/* ✅ Google Analytics 4 (GA4) */}
+        <Script
+         id="ga4-script"
+         strategy="afterInteractive"
+         src="https://www.googletagmanager.com/gtag/js?id=G-53ZYC74P6Q"
+        />
+        <Script id="ga4-inline" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-53ZYC74P6Q');
+          `}
+        </Script>
+        {/* Google AdSense: load once globally */}
+        <Script
+          id="adsbygoogle-init"
+          async
+          strategy="afterInteractive"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4083132987699578"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         {/* Global route loader overlay and controller */}
         <RouteLoaderOverlay />
