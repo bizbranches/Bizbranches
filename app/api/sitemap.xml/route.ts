@@ -1,30 +1,53 @@
 import { getAllBusinessSlugs } from "@/lib/mongodb";
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const slugs = await getAllBusinessSlugs();
+  const baseUrl = process.env.NODE_ENV === 'production' ? "https://bizbranches.pk" : "https://bizbranches-theta.vercel.app";
 
-  const baseUrl = "https://bizbranches.com"; // apna domain yahan likho
+  // Static pages
+  const staticPages = [
+    { url: "", priority: "1.0", changefreq: "daily" },
+    { url: "/search", priority: "0.9", changefreq: "daily" },
+    { url: "/add", priority: "0.8", changefreq: "weekly" },
+    { url: "/about", priority: "0.6", changefreq: "monthly" },
+    { url: "/contact", priority: "0.6", changefreq: "monthly" },
+    { url: "/privacy", priority: "0.5", changefreq: "yearly" },
+  ];
 
-  const urls = slugs
+  const staticUrls = staticPages
+    .map(
+      (page) => `
+    <url>
+      <loc>${baseUrl}${page.url}</loc>
+      <changefreq>${page.changefreq}</changefreq>
+      <priority>${page.priority}</priority>
+    </url>`
+    )
+    .join("");
+
+  const businessUrls = slugs
     .map(
       (slug) => `
     <url>
-      <loc>${baseUrl}/business/${slug}</loc>
-      <changefreq>daily</changefreq>
+      <loc>${baseUrl}/${slug}</loc>
+      <changefreq>weekly</changefreq>
       <priority>0.7</priority>
-    </url>
-  `
+    </url>`
     )
     .join("");
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    ${urls}
-  </urlset>`;
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticUrls}
+${businessUrls}
+</urlset>`;
 
   return new Response(sitemap, {
     headers: {
       "Content-Type": "application/xml",
+      "Cache-Control": "s-maxage=3600, stale-while-revalidate=86400"
     },
   });
 }

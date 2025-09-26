@@ -60,3 +60,17 @@ export async function getDb(dbName?: string) {
   const name = dbName || process.env.MONGODB_DB || undefined
   return client.db(name)
 }
+
+export async function getAllBusinessSlugs(): Promise<string[]> {
+  try {
+    const db = await getDb()
+    const businesses = await db.collection("businesses")
+      .find({ status: "approved", slug: { $exists: true, $ne: "" } })
+      .project({ slug: 1 })
+      .toArray()
+    return businesses.map(b => b.slug).filter(Boolean)
+  } catch (error) {
+    console.error("Error fetching business slugs:", error)
+    return []
+  }
+}
