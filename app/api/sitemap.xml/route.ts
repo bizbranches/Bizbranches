@@ -5,6 +5,8 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const slugs = await getAllBusinessSlugs();
   const baseUrl = process.env.NODE_ENV === 'production' ? "https://bizbranches.pk" : "https://bizbranches-theta.vercel.app";
+  
+  console.log('Sitemap: Found', slugs.length, 'business slugs:', slugs);
 
   // Static pages
   const staticPages = [
@@ -42,6 +44,7 @@ export async function GET() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${staticUrls}
 ${businessUrls}
+<!-- Found ${slugs.length} businesses -->
 </urlset>`;
 
   return new Response(sitemap, {
