@@ -2,17 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { ChevronsUpDown, MapPin, Building, User, Phone, Mail, MessageSquare, Globe, Camera } from "lucide-react"
+import { ChevronsUpDown, MapPin, Building, User, Phone, Mail, MessageSquare, Globe, Camera, CheckCircle } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface FormState {
   businessName: string
@@ -49,8 +51,11 @@ export function AddBusinessForm({
   onSubmitted?: () => void
 }) {
   const { toast } = useToast()
+  const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({})
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState(0)
   const DESCRIPTION_MAX = 1000
@@ -303,6 +308,10 @@ export function AddBusinessForm({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
     setForm((prev) => ({ ...prev, [id]: value }))
+    // Clear error when user starts typing
+    if (fieldErrors[id]) {
+      setFieldErrors(prev => ({ ...prev, [id]: false }))
+    }
   }
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -350,6 +359,11 @@ export function AddBusinessForm({
 
     const missingKeys = required.filter(([, v]) => !v || String(v).trim() === "").map(([k]) => k as string)
     if (!form.logoFile) missingKeys.push("logo")
+
+    // Set field errors for visual indication
+    const errors: Record<string, boolean> = {}
+    missingKeys.forEach(key => { errors[key] = true })
+    setFieldErrors(errors)
 
     if (missingKeys.length) {
       const friendlyList = missingKeys
@@ -429,8 +443,8 @@ export function AddBusinessForm({
           youtubeUrl: "",
           profileUsername: "",
         })
-        toast({ title: "Submitted", description: "Your business has been submitted for review (24–48 hours)." })
         setSubmitted(true)
+        setShowSuccessDialog(true)
         onSubmitted?.()
       } else {
         let message = "Please try again."
@@ -476,14 +490,6 @@ export function AddBusinessForm({
           
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} noValidate className="space-y-8">
-              {submitted && (
-                <Alert className="border-green-200 bg-green-50">
-                  <AlertTitle className="text-green-800">Business submitted</AlertTitle>
-                  <AlertDescription className="text-green-700">
-                    Thank you! Your business has been submitted and will be reviewed within 24–48 hours.
-                  </AlertDescription>
-                </Alert>
-              )}
               {/* NAP Section - Name, Address, Phone */}
               <section className="bg-blue-50 p-6 rounded-xl border border-blue-100">
                 <div className="flex items-center mb-6">
@@ -506,7 +512,7 @@ export function AddBusinessForm({
                         placeholder="Enter your business name" 
                         value={form.businessName} 
                         onChange={handleChange} 
-                        className="h-12 pl-10 border-gray-300 focus:border-blue-500" 
+                        className={`h-12 pl-10 focus:border-blue-500 ${fieldErrors.businessName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                       />
                     </div>
                   </div>
@@ -520,7 +526,7 @@ export function AddBusinessForm({
                         placeholder="Street address, building, floor, etc." 
                         value={form.address} 
                         onChange={handleChange} 
-                        className="h-12 pl-10 border-gray-300 focus:border-blue-500" 
+                        className={`h-12 pl-10 focus:border-blue-500 ${fieldErrors.address ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                       />
                     </div>
                   </div>
@@ -534,7 +540,7 @@ export function AddBusinessForm({
                         placeholder="+92-XXX-XXXXXXX" 
                         value={form.phone} 
                         onChange={handleChange} 
-                        className="h-12 pl-10 border-gray-300 focus:border-blue-500" 
+                        className={`h-12 pl-10 focus:border-blue-500 ${fieldErrors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                       />
                     </div>
                   </div>
@@ -572,7 +578,7 @@ export function AddBusinessForm({
                     <Label className="text-gray-700 font-medium mb-2 block">Province <span className="text-red-500">*</span></Label>
                     <Popover open={provinceOpen} onOpenChange={setProvinceOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={provinceOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
+                        <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={provinceOpen} className={`w-full justify-between h-12 bg-white ${fieldErrors.province ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
                           <span className="truncate">{form.province || (provLoading ? "Loading..." : "Select province")}</span>
                           <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
                         </Button>
@@ -621,7 +627,7 @@ export function AddBusinessForm({
                     <Label className="text-gray-700 font-medium mb-2 block">City <span className="text-red-500">*</span></Label>
                     <Popover open={cityOpen} onOpenChange={setCityOpen}>
                       <PopoverTrigger asChild>
-                        <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={cityOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
+                        <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={cityOpen} className={`w-full justify-between h-12 bg-white ${fieldErrors.city ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
                           <span className="truncate">{form.city || (cityLoading ? "Loading..." : "Select city")}</span>
                           <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
                         </Button>
@@ -649,7 +655,7 @@ export function AddBusinessForm({
                       <Label className="text-gray-700 font-medium mb-2 block">Category <span className="text-red-500">*</span></Label>
                       <Popover open={catOpen} onOpenChange={setCatOpen}>
                         <PopoverTrigger asChild>
-                          <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={catOpen} className="w-full justify-between h-12 border-gray-300 bg-white">
+                          <Button type="button" animated={false} variant="outline" role="combobox" aria-expanded={catOpen} className={`w-full justify-between h-12 bg-white ${fieldErrors.category ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
                             <span className="truncate">{form.category ? form.category : (catLoading ? "Loading..." : "Select a category")}</span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 opacity-60" />
                           </Button>
@@ -764,20 +770,7 @@ export function AddBusinessForm({
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="profileUsername" className="text-gray-700 font-medium mb-2 block">Your Profile user name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                      <Input
-                        id="profileUsername"
-                        placeholder="e.g. johndoe"
-                        value={form.profileUsername}
-                        onChange={handleChange}
-                        className="h-12 pl-10 border-gray-300 focus:border-blue-500"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Use your trustedprofile.com username to connect this business with your profile.</p>
-                  </div>
+
 
                   <div className="md:col-span-2">
                     <Label htmlFor="description" className="text-gray-700 font-medium mb-2 block">Business Description <span className="text-red-500">*</span></Label>
@@ -788,7 +781,7 @@ export function AddBusinessForm({
                       onChange={handleChange}
                       maxLength={DESCRIPTION_MAX}
                       rows={5}
-                      className="border-gray-300 focus:border-blue-500"
+                      className={`focus:border-blue-500 ${fieldErrors.description ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                     />
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
                       <span>Tips: Add services, specialties, and years of experience.</span>
@@ -808,9 +801,9 @@ export function AddBusinessForm({
                           type="file" 
                           accept="image/png,image/jpeg,image/webp,image/svg+xml" 
                           onChange={handleFile} 
-                          className="h-12 border-gray-300 focus:border-blue-500 opacity-0 z-10" 
+                          className={`h-12 focus:border-blue-500 opacity-0 z-10 ${fieldErrors.logo ? 'border-red-500' : 'border-gray-300'}`}
                         />
-                        <div className="absolute inset-0 flex items-center px-3 pointer-events-none border border-gray-300 rounded-md bg-gray-50">
+                        <div className={`absolute inset-0 flex items-center px-3 pointer-events-none border rounded-md ${fieldErrors.logo ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-gray-50'}`}>
                           <span className="text-gray-500 ml-8">Upload JPG, PNG, WebP, or SVG. Max ~2.5MB.</span>
                         </div>
                       </div>
@@ -902,6 +895,33 @@ export function AddBusinessForm({
             </form>
           </CardContent>
         </Card>
+        
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <DialogTitle className="text-xl font-semibold text-green-800">
+                Business Submitted Successfully!
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                Thank you! Your business has been submitted and will be reviewed within 24–48 hours.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-center pt-4">
+              <Button 
+                onClick={() => {
+                  setShowSuccessDialog(false)
+                  router.push('/')
+                }}
+                className="w-full"
+              >
+                Go to Home
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

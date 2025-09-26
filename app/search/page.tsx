@@ -4,7 +4,7 @@ import BusinessListItem from "@/components/business-list-item"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState, useEffect, useMemo, useRef } from "react"
 import Link from "next/link"
-import FancyLoader from "@/components/fancy-loader"
+
 
 type Business = {
   id: string
@@ -383,7 +383,7 @@ export default function SearchPage() {
           <section>
             {isLoading && (
               <div className="py-16 flex items-center justify-center">
-                <FancyLoader />
+                <div className="text-muted-foreground">Loading...</div>
               </div>
             )}
             {error && (
@@ -398,7 +398,7 @@ export default function SearchPage() {
                 <div ref={sentinelRef} className="h-10" />
                 {(isFetchingMore || (hasMore && !isLoading)) && (
                   <div className="flex justify-center items-center py-6">
-                    <FancyLoader />
+                    <div className="text-muted-foreground">Loading more...</div>
                   </div>
                 )}
               </>
