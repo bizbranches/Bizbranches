@@ -264,7 +264,8 @@ export default function BusinessDetailPage() {
 
             {/* Title and meta - constrain to 60% width on desktop */}
             <div className="flex flex-col justify-center text-center md:text-left md:flex-none md:basis-[60%] md:max-w-[60%]">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
+              {/* Mobile: Category and Reviews on separate lines */}
+              <div className="flex flex-col md:flex-row md:flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3 mb-2">
                 <Badge variant="secondary" className="bg-primary text-primary-foreground px-3 py-1">
                   {business.category}
                 </Badge>

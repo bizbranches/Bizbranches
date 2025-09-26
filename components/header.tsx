@@ -3,10 +3,28 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { useRouter, usePathname } from "next/navigation"
 
 export function Header() {
   const [open, setOpen] = useState(false)
+  const router = useRouter()
+  const pathname = usePathname()
   const closeMenu = () => setOpen(false)
+  
+  const handleCategoriesClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (pathname === '/') {
+      // On homepage, scroll to categories section
+      const categoriesSection = document.getElementById('categories-section')
+      if (categoriesSection) {
+        categoriesSection.scrollIntoView({ behavior: 'smooth' })
+      }
+    } else {
+      // On other pages, navigate to homepage then scroll
+      router.push('/#categories-section')
+    }
+    closeMenu()
+  }
 
   return (
     <header className="bg-primary text-primary-foreground shadow-sm">
@@ -20,9 +38,9 @@ export function Header() {
             <Link href="/" className="hover:text-accent transition-colors">
               Home
             </Link>
-            <Link href="/search?allCategories=1" className="hover:text-accent transition-colors">
+            <button onClick={handleCategoriesClick} className="hover:text-accent transition-colors">
             Categories
-            </Link>
+            </button>
           </nav>
 
           <div className="hidden md:flex items-center gap-2">
@@ -55,9 +73,9 @@ export function Header() {
             <Link href="/" onClick={closeMenu} className="hover:text-accent transition-colors">
               Home
             </Link>
-            <Link href="/search?allCategories=1" onClick={closeMenu} className="hover:text-accent transition-colors">
-              Category
-            </Link>
+            <button onClick={handleCategoriesClick} className="hover:text-accent transition-colors">
+              Categories
+            </button>
             <div className="pt-2 flex flex-col gap-2">
               <Button asChild variant="secondary" onClick={closeMenu}>
                 <Link href="/add">Add Your Business</Link>

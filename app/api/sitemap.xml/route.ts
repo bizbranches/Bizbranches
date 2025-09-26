@@ -50,7 +50,7 @@ ${businessUrls}
   return new Response(sitemap, {
     headers: {
       "Content-Type": "application/xml",
-      "Cache-Control": "s-maxage=3600, stale-while-revalidate=86400"
+      "Cache-Control": "no-cache"
     },
   });
 }

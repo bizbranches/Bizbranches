@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server"
 import { getModels } from "@/lib/models"
 import { CreateBusinessSchema, BusinessSchema } from "@/lib/schemas"
 import cloudinary from "@/lib/cloudinary"
+import { pingGoogleSitemap } from "@/lib/google-ping"
 
 export const runtime = "nodejs"
 
@@ -90,6 +91,11 @@ export async function PATCH(req: NextRequest) {
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ ok: false, error: "Business not found" }, { status: 404 })
+    }
+
+    // Ping Google when business is approved
+    if (nextStatus === "approved" && result.modifiedCount > 0) {
+      pingGoogleSitemap().catch(console.error)
     }
 
     return NextResponse.json({ ok: true, modifiedCount: result.modifiedCount })
