@@ -145,10 +145,13 @@ export default function SearchPage() {
 
   // Initialize AdSense on mount
   useEffect(() => {
-    try {
-      // @ts-ignore
-      (window.adsbygoogle = window.adsbygoogle || []).push({})
-    } catch {}
+    const timer = setTimeout(() => {
+      try {
+        // @ts-ignore
+        (window.adsbygoogle = window.adsbygoogle || []).push({})
+      } catch {}
+    }, 1000)
+    return () => clearTimeout(timer)
   }, [])
 
   // Infinite scroll sentinel observer
@@ -250,6 +253,18 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Ad below header */}
+      <div className="w-full px-4 py-4">
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-client="ca-pub-4083132987699578"
+          data-ad-slot="3877186043"
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      </div>
+      
       <main className="pl-2 md:pl-6 pr-0 py-4">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
@@ -262,17 +277,7 @@ export default function SearchPage() {
           </p>
         </div>
 
-        {/* AdSense: below the search field/header section */}
-        <div className="w-full px-0 md:px-0 lg:px-0 py-4">
-          <ins
-            className="adsbygoogle"
-            style={{ display: 'block' }}
-            data-ad-client="ca-pub-4083132987699578"
-            data-ad-slot="3877186043"
-            data-ad-format="auto"
-            data-full-width-responsive="true"
-          />
-        </div>
+
 
         {/* Layout: 15% (filters) / 67% (list) / 18% (empty) */}
         <div className="grid grid-cols-1 md:grid-cols-[15%_67%_14%] gap-6">
@@ -415,18 +420,19 @@ export default function SearchPage() {
           <div className="hidden md:block" />
         </div>
 
-        {/* AdSense: above footer */}
-        <div className="w-full px-0 md:px-0 lg:px-0 py-8">
-          <ins
-            className="adsbygoogle"
-            style={{ display: 'block' }}
-            data-ad-client="ca-pub-4083132987699578"
-            data-ad-slot="3877186043"
-            data-ad-format="auto"
-            data-full-width-responsive="true"
-          />
-        </div>
       </main>
+      
+      {/* Ad above footer */}
+      <div className="w-full px-4 py-4">
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-client="ca-pub-4083132987699578"
+          data-ad-slot="3877186043"
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      </div>
     </div>
   )
 }

@@ -140,12 +140,15 @@ export default function BusinessDetailPage() {
   }, [businessId])
 
   useEffect(() => {
-    try {
-      // @ts-ignore
-      (window.adsbygoogle = window.adsbygoogle || []).push({})
-    } catch (e) {
-      // ignore if adsbygoogle not yet available
-    }
+    const timer = setTimeout(() => {
+      try {
+        // @ts-ignore
+        (window.adsbygoogle = window.adsbygoogle || []).push({})
+      } catch (e) {
+        // ignore if adsbygoogle not yet available
+      }
+    }, 1000)
+    return () => clearTimeout(timer)
   }, [businessId])
 
   const submitReview = async () => {
@@ -222,8 +225,8 @@ export default function BusinessDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 to-white overflow-x-hidden">
-      {/* AdSense: below navbar, above business name/logo header */}
-      <div className="w-full px-4 md:px-8 lg:px-12 pt-4">
+      {/* Ad below header */}
+      <div className="w-full px-4 py-4">
         <ins
           className="adsbygoogle"
           style={{ display: 'block' }}
@@ -331,6 +334,18 @@ export default function BusinessDetailPage() {
           </div>
         </div>
       </div>
+      
+      {/* Ad below business name section */}
+      <div className="w-full px-4 py-4">
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-client="ca-pub-4083132987699578"
+          data-ad-slot="3877186043"
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      </div>
 
       <main className="w-full px-4 md:px-8 lg:px-12 py-8 md:py-12">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6">
@@ -412,17 +427,7 @@ export default function BusinessDetailPage() {
           </Dialog>
         </div>
 
-        {/* AdSense: below breadcrumb buttons row */}
-        <div className="w-full px-0 md:px-0 lg:px-0 py-4">
-          <ins
-            className="adsbygoogle"
-            style={{ display: 'block' }}
-            data-ad-client="ca-pub-4083132987699578"
-            data-ad-slot="3877186043"
-            data-ad-format="auto"
-            data-full-width-responsive="true"
-          />
-        </div>
+
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <div className="xl:col-span-2 space-y-8">
@@ -533,8 +538,8 @@ export default function BusinessDetailPage() {
               </CardContent>
             </Card>
 
-            {/* AdSense: directly below About section */}
-            <div className="w-full py-2">
+            {/* Ad below about section */}
+            <div className="w-full px-4 py-4">
               <ins
                 className="adsbygoogle"
                 style={{ display: 'block' }}
@@ -782,6 +787,18 @@ export default function BusinessDetailPage() {
         </div>
 
       </main>
+      
+      {/* Ad above footer */}
+      <div className="w-full px-4 py-4">
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-client="ca-pub-4083132987699578"
+          data-ad-slot="3877186043"
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      </div>
 
     </div>
   )
