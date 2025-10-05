@@ -1,5 +1,5 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone', // ← ADD THIS LINE
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -9,30 +9,17 @@ const nextConfig = {
   images: {
     unoptimized: false,
     domains: ["res.cloudinary.com"],
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "/**",
-      },
-    ],
   },
-  experimental: {
-    serverActions: true, // enables server-side API handling
-  },
-  output: "standalone", // 🔥 required for Amplify SSR build
-
   async redirects() {
     return [
-      { source: "/business/:slug", destination: "/:slug", permanent: true },
-      { source: "/city/:path*/business/:slug", destination: "/:slug", permanent: true },
-      { source: "/category/:path*/business/:slug", destination: "/:slug", permanent: true },
-      { source: "/404", destination: "/", permanent: false },
-    ];
+      { source: '/business/:slug', destination: '/:slug', permanent: true },
+      { source: '/city/:path*/business/:slug', destination: '/:slug', permanent: true },
+      { source: '/category/:path*/business/:slug', destination: '/:slug', permanent: true },
+      { source: '/404', destination: '/', permanent: false },
+    ]
   },
-};
-
-export default nextConfig;
+}
+export default nextConfig
 
 
 
