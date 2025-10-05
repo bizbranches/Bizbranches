@@ -9,7 +9,7 @@ function serializeId(doc: any) {
   delete out._id
   return out
 }
-
+// Test
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const { slug } = params
   const models = await getModels()
