@@ -12,15 +12,30 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 
-export default function BusinessDetailPage() {
+
+interface BusinessDetailPageProps {
+  initialBusiness: any;
+  initialReviews: any[];
+  initialRatingAvg: number;
+  initialRatingCount: number;
+  initialRelated: any[];
+}
+
+export default function BusinessDetailPage({
+  initialBusiness,
+  initialReviews,
+  initialRatingAvg,
+  initialRatingCount,
+  initialRelated,
+}: BusinessDetailPageProps) {
   const params = useParams() as { id?: string; slug?: string }
   // Support both /business/[id] (id) and clean /[slug] (slug)
   const businessId = (params.id || params.slug || "") as string
-  const [business, setBusiness] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [reviews, setReviews] = useState<any[]>([])
-  const [ratingAvg, setRatingAvg] = useState<number>(0)
-  const [ratingCount, setRatingCount] = useState<number>(0)
+  const [business, setBusiness] = useState<any>(initialBusiness)
+  const [loading, setLoading] = useState(false)
+  const [reviews, setReviews] = useState<any[]>(initialReviews)
+  const [ratingAvg, setRatingAvg] = useState<number>(initialRatingAvg)
+  const [ratingCount, setRatingCount] = useState<number>(initialRatingCount)
   const reviewsRef = useRef<HTMLDivElement | null>(null)
 
   // Review dialog state
@@ -30,7 +45,7 @@ export default function BusinessDetailPage() {
   const [reviewComment, setReviewComment] = useState("")
   const [submitting, setSubmitting] = useState(false)
   // Related businesses (same category and city)
-  const [related, setRelated] = useState<any[]>([])
+  const [related, setRelated] = useState<any[]>(initialRelated)
   const [showMore, setShowMore] = useState(false)
   // Optional linked profile info
   const [profile, setProfile] = useState<{ name?: string; title?: string; avatarUrl?: string } | null>(null)

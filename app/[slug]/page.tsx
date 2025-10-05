@@ -2,16 +2,46 @@ import BusinessDetailPage from "../business/[id]/page"
 import { getModels } from "@/lib/models"
 import { headers } from "next/headers"
 
-function serializeId(doc: any) {
+function serializeId(doc: any): any {
   if (!doc) return doc
-  const out: any = { ...doc }
-  if (out._id && !out.id) out.id = String(out._id)
-  delete out._id
+  if (Array.isArray(doc)) return doc.map(serializeId)
+  if (typeof doc !== 'object') return doc
+  // Handle Buffer, ObjectId, or objects with toJSON
+  if (typeof doc.toJSON === 'function') {
+    try {
+      const jsonVal = doc.toJSON()
+      if (typeof jsonVal === 'object') return serializeId(jsonVal)
+      return jsonVal
+    } catch {}
+  }
+  const out: any = {}
+  for (const key in doc) {
+    if (key === '_id') {
+      out.id = String(doc._id)
+      continue
+    }
+    const val = doc[key]
+    if (val && typeof val === 'object') {
+      // Buffer, ObjectId, or objects with toJSON
+      if (typeof val.toJSON === 'function') {
+        try {
+          const jsonVal = val.toJSON()
+          out[key] = typeof jsonVal === 'object' ? serializeId(jsonVal) : jsonVal
+        } catch {
+          out[key] = String(val)
+        }
+      } else {
+        out[key] = serializeId(val)
+      }
+    } else {
+      out[key] = val
+    }
+  }
   return out
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const { slug } = params
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   const models = await getModels()
   const biz = await models.businesses.findOne({ $or: [{ slug }, { id: slug }] as any })
   const b: any = serializeId(biz)
@@ -41,9 +71,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function BusinessBySlugPage({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
-  const { slug } = params
+  const { slug } = await params
   const models = await getModels()
 
   // Business
