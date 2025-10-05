@@ -3,13 +3,11 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm ci
+        - npm install
     build:
       commands:
-        # Build Next.js app in SSR mode (includes API routes)
-        - npx next build
+        - npm run build
   artifacts:
-    # .next folder contains the full Next.js output for Amplify
     baseDirectory: .next
     files:
       - '**/*'
@@ -18,7 +16,6 @@ frontend:
       - node_modules/**/*
 
   customHeaders:
-    # Allow Amplify to handle API requests correctly (optional)
     - pattern: '**/*'
       headers:
         - key: Access-Control-Allow-Origin
